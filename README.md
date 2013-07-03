@@ -6,6 +6,7 @@ ILO_Materials
 
 Tasks 
 === 
+* Identify why spatial correlation late window is not working.. 
 * Determine if reason for discrepancy against earlier tables is because of imported contract parameters 
 * Can save the downloaded EVI files to an output folder and create a flag to avoid lengthy downloads 
 * Save ggplot figures as external PDFs - takes too long to load as internal plots 
