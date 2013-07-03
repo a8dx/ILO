@@ -7,18 +7,6 @@
 # ******************************************************************************
 
 
-
-
-# =========================  Edit History  ===================================== 
-#
-# 7/2 (ALD) - improved plotting using ggmap, streamlined documentation 
-# 7/1 (ALD) - created evi.corr.regrid function in vi_functions.R, auxiliary to
-# this file
-
-# ******************************************************************************
-
-
-
 # ===========================  Purpose  ======================================== 
 # 
 # This script performs 3 discrete tasks 1. Calls existing rainfall estimate and
@@ -30,9 +18,10 @@
 # masking out pixels with VI spatial correlation coefficients below some
 # user-specified level.  The remaining pixels are spatially averaged to produce
 # a single VI time-series per site.
+#
+# Some plots will be sent straight to PDF in the Output folder 
 # 
 # ******************************************************************************
-
 
 
 
@@ -48,10 +37,25 @@
 
 
 
+# =========================  Edit History  ===================================== 
+# 7/3 (ALD) - further documentation work, some pseudo-coding for necessary work
+#             problems accessing ggplot2 functions inside function, requires 
+#             some repetition of procedures - need to discuss with Helen 
+# 7/2 (ALD) - improved plotting using ggmap, streamlined documentation 
+# 7/1 (ALD) - created evi.corr.regrid function in vi_functions.R, auxiliary to
+# this file
+
+# ******************************************************************************
+
+
+
+
 # ============================= Notes ========================================== 
 #
-# Datasets may be applicable only for some regions, check beforehand
-# Need to determine which rainfall products we are comparing against before pushing forward with design
+# Datasets may be applicable only for some regions, given how IRI-DL data is 
+# divided into tiles - check beforehand.  
+# Need to determine which rainfall products we are comparing against before 
+# pushing forward with design -> should move to creating generic functions 
 #
 # * Currently only focusing on ARC2 data, but have also included RFE rankings 
 #
@@ -60,23 +64,6 @@
 # * arc.ranks = for validating earlier ILO results: gives ECDF ranks across 
 #     early and late phases 
 # ******************************************************************************
-
-
-# ============================== Tasks ========================================= 
-#
-# * Variable lag length for VI data against rainfall (creating a vector with multiple lags enables us to do immediate comparisons - this will be in terms of the 16-day composites)  Also consider taking the average of multiple lags (e.g., 1st 16-day composite lag behind, and 2nd)
-# * Masking out pixels with spatial correlation values below threshold
-# * Changing aggregate pixel size (may be based on some criteria) - currently all pixels within grid are evenly weighted
-# * Identify which pixels fall below a threshold correlation level with ARC2 and then determine whether those pixels have a better correspondence with the worst years                
-#   * Determine how best to save the pixel-level data in a meaningful way 
-#Apply some weighting criteria to grid based on distance to village pixel 
-# Determine appropriate graphing facilities for exporting data  
-# User specifies which products interested in, use "if" statements to match product with URL assembly
-
-#???? Uses some of the core existing functions written for sniidharita 
-#  
-# ******************************************************************************
-
 
 
 # ---- Initialization --------------------
@@ -95,12 +82,12 @@
     source("vi_functions.R")
 
   # Names and creates (in first run) folder for outputted rankings files 
-    out.path <- "Output"
+    out.path <- "Output/"
     if (!file.exists(out.path)){dir.create(out.path)}
 #=============================================================================#
 
 
-#======================= Validation Comparison ===============================#
+#===================== ARC Worst Years Assessment =============================
 #
 # Comparing worst years of ARC2 against select VI products.  Results should 
 # match output in earlier ILO reports.  
@@ -127,26 +114,33 @@
     rbf.fn <- "/EthRFEadj/rainbyphase.csv"
 
  
-
-
+# PSEUDO - 'phase' is passed to vi.common (in vi_functions), yet we are really 
+# interested in assessing all phases.  Here I take the short-cut of focusing 
+# on a single phase since this is about reproducing an earlier report, not
+# developing a new core function.  Should be fixed in the future.  
 
   # establish parameters for comparison table 
     prods <- c("EVI", "NDVI", "NDWI")  
     satellite <- "Mod"  
-    phase <- "Early" 
-    badyear.thres <- 1/6
-
+    phases <- c("Early","Late")
+    phase <- "Early"
+  # compare the worst x % of years for agreement between products 
+    badyear.thres <- 1/6    
   # create array for early and late arc ecdf rankings 
-    arc.ranks <- array(data = NA, dim = c(nrow = dim(site.data)[1], length(years), 2))
-    dimnames(arc.ranks) <- list(rownames(site.data), years, c("Early", "Late"))
+    arc.ranks <- array(data = NA, dim = c(nrow = dim(site.data)[1], length(years), length(phases)))
+    dimnames(arc.ranks) <- list(rownames(site.data), years, phases)
   
 
-  # create a matrix where comparison data for a single product at a time will be kept 
-    vi.mat <- matrix(ncol = length(prods), nrow = length(rownames(site.data)))
+  # matrix with agreement % values for all products, all phases 
+    vi.mat <- matrix(ncol = length(phases)*length(prods), nrow = length(rownames(site.data)))
     rownames(vi.mat) <- rownames(site.data)
-    colnames(vi.mat) <- prods
 
-  # create an array with rankings for each product, each site, across all years
+  # not happy with this, but need to access subset of columns later on - this should be fixed 
+    phaseprod1 <- paste0(phases[1],prods)
+    phaseprod2 <- paste0(phases[2],prods)
+    colnames(vi.mat) <- c(phaseprod1, phaseprod2)
+
+  # create an array with ecdf rankings for each product, each site, across all years
     vi.rankings <- array(data = NA, dim = c(length(rownames(site.data)), length(years), length(prods)))
     dimnames(vi.rankings) <- list(rownames(site.data), years, prods)
 
@@ -174,37 +168,42 @@
       
       # define sowing windows to calculate ARC rainfall by using dekad calendar 
       # days given for comparison against earlier reports 
-        early.start <- min(which(dekad.cal == site.data[site,"EarlyFirst"]))
-        early.end <- max(which(dekad.cal == site.data[site,"EarlyLast"])) 
-        late.start <- min(which(dekad.cal == site.data[site,"LateFirst"]))
-        late.end <- max(which(dekad.cal == site.data[site,"LateLast"]))
+        early.start       <- min(which(dekad.cal == site.data[site,"EarlyFirst"]))
+        early.end   <- max(which(dekad.cal == site.data[site,"EarlyLast"])) 
+        late.start  <- min(which(dekad.cal == site.data[site,"LateFirst"]))
+        late.end    <- max(which(dekad.cal == site.data[site,"LateLast"]))
         early.dates <- c(rownames(dekad.cal)[early.start], rownames(dekad.cal)[early.end])
-        late.dates <- c(rownames(dekad.cal)[late.start], rownames(dekad.cal)[late.end])
+        late.dates  <- c(rownames(dekad.cal)[late.start], rownames(dekad.cal)[late.end])
         
       # read ARC precip file in day-year format
-        arc <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
+        arc           <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
         colnames(arc) <- substr(colnames(arc),2,5)   # remove X from character string preceding colnames
       
       # create subset of only arc data over years in "years", take sum over window timings 
-        arc.sub <- arc[,years]
-        earlies <- colSums(arc.sub[early.start:(early.end),])
-        lates <- colSums(arc.sub[late.start:(late.end),]) 
+        arc.sub   <- arc[,years]
+        earlies   <- colSums(arc.sub[early.start:(early.end),])
+        lates     <- colSums(arc.sub[late.start:(late.end),]) 
       
       # identify which years satisfy the quantile requirement 
         arc.years.early <- colnames(arc.sub)[which(earlies <= quantile(earlies, probs = badyear.thres))]
-        arc.years.late <- colnames(arc.sub)[which(lates <= quantile(lates, probs = badyear.thres))]
+        arc.years.late  <- colnames(arc.sub)[which(lates <= quantile(lates, probs = badyear.thres))]
       
       # write-in the ecdf rankings of arc estimates
         arc.Fn <- ecdf(earlies)
-        arc.ranks[site,,phase] <- round(arc.Fn(earlies), digits = 2) 
+        arc.ranks[site,,"Early"]  <- round(arc.Fn(earlies), digits = 2) 
       
         arc.Fn <- ecdf(lates)
-        arc.ranks[site,,"Late"] <- round(arc.Fn(lates), digits = 2)  
+        arc.ranks[site,,"Late"]   <- round(arc.Fn(lates), digits = 2)  
        
-      # returns vector of rankings agreement (overlap) results
+      # returns vector of rankings agreement (overlap) results for early window
       # uses "vi.compare" from vi_functions script  
+        phase <- "Early"
         print(sapply(prods,vi.compare))
-        vi.mat[site,] <- sapply(prods, vi.compare) 
+        vi.mat[site,phaseprod1] <- sapply(prods, vi.compare) 
+       
+        phase <- "Late"
+        print(sapply(prods,vi.compare))
+        vi.mat[site,phaseprod2] <- sapply(prods, vi.compare)     
       
       # converting matrix to array for incorporation into master array
       # write ecdf rankings values to master array
@@ -279,14 +278,13 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
  
     if(override){
       l <- override.box[1]; b <- override.box[2]; r <- override.box[3]; t <- override.box[4]
-    }
-else
-  {    # default bounding box coordinates, including the earlier specified b.s
+    } else{
+      # default bounding box coordinates, including the earlier specified b.s
   l <- min(arc.early$Longitude) - b.s
   b <- min(arc.early$Latitude) - b.s
   r <- max(arc.early$Longitude) + b.s
   t <- max(arc.early$Latitude) + b.s
-  }
+    }
 
 
   # convert input dataframe to appropriate form for ggplot2/ggmap use  
@@ -303,17 +301,20 @@ else
     outmap <- get_cloudmademap(bbox = c(left = l, bottom = b, right = r, top = t), api_key = cm.key)  
 
   # generate early window ARC rankings 
-    print(ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_e)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Early Window Rankings"))    
+    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_e)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Early Window Rankings")
+    ggsave(file = paste0(out.path, "ARCearlyranks.pdf"), scale = 1.5)
 
   # generate late ARC ranks 
-    print(ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_l)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Late Window Rankings"))
-
+  # wrap in print() to display plot on-screen  
+    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_l)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Late Window Rankings")
+    ggsave(file = paste0(out.path,"ARClateranks.pdf"), scale = 1.5)
+    
 
 #Comparing worst years of ARC2 against select VI products.  Results should 
 # match output in earlier ILO reports.
 
 
-# ====  These functions should work, but encountering problems =====
+# ====  These functions should work, but encountering problems =====#
   # Have opted to pull out the commands outside the function - can improve for later iteration 
 #  arc.early <- df.melt(arc.early)  # creates a melted version for gg
 #  arc.late <- df.melt(arc.late)  # creates a melted version for gg
@@ -322,17 +323,18 @@ else
 
 
 
-# ======== Comparing VI and ARC ranks ======= 
+# ================= Comparing VI and ARC ranks =================================
 # 
 # Also used for validating against previous ILO reports, this time comparing 
 # individual VI products against ARC and with the badyear.thres value defining
 # which are the worst years 
 #
-# ******************************************************************************
+# *****************************************************************************#
 
   # ARC-VI Agreement on Worst Years
     # this can serve as the benchmark against which other versions can be compared to evaluate any performance gains from regridding, spatial correlation, etc.  
-    print(ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = vi.2)) + geom_point(aes(color = value)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC-VI Worst Year Agreement %"))
+    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = vi.2)) + geom_point(aes(color = value)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC-VI Worst Year Agreement %")
+    ggsave(file = paste0(out.path, "ARCEVIagree.pdf"), scale = 1.5)
 
 
 
@@ -349,49 +351,39 @@ else
 #print(ggmap(Eth, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = gg.arc.early)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable))  
 
 
-
-
-# VI-ARC agreement rankings 
-
-
-    
-    
-
-
-
-#http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DAILY/.ARC2/.daily/.est_prcp/X/38.85/VALUE/Y/14.1509/VALUE/X/removeGRID/Y/removeGRID/T/1.0/monthlyAverage/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/33/0.1/48/GRID/Y/3.4/0.1/14.9/GRID/T/1.0/monthlyAverage/T/0/1/3/shiftdatashort%5BT%5Dcorrelate/0.7/maskle/figviewer.html?my.help=more+options&map.T_lag.plotvalue=0.0&map.Y.units=degree_north&map.Y.plotlast=14.95N&map.url=X+Y+fig-+colors+-fig&map.domain=+%7B+/T_lag+0.0+plotvalue+%7D&map.domainparam=+/plotaxislength+432+psdef+/plotborder+72+psdef&map.zoom=Zoom&map.Y.plotfirst=3.35N&map.X.plotfirst=32.95E&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=48.05E&map.correlation.plotfirst=-0.8637556&map.correlation.units=unitless&map.correlation.plotlast=0.8637556&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
-
-
-
-
-# ======================= VI Scaling Exercises ===============================#
+# ======================= VI Grid Size Scaling ================================= 
 #
-#   
+# An alternative to comparing VI results scaled at the same pixel size as ARC2 
+# is to 1.) compare across a smaller aggregate pixel size (under 10k x 10k), 
+# and 2.) within that smaller box, to only compare pixels whose correlation 
+# values 
+#
+# Since much of the code is common to the correlation work below, outputs are
+# in that chunk of code.  
+# 
+# Will create a .csv output file titled with diameter value for comparison  
 #
 # How many km wide do you want the aggregate gridding box?  [0 < x <= 10 km]
 #
-    diameter.range <- 5  
+  #  diameter.range <- 5  
+    diameter.range <- 1:5
+    range.number <- 10    # do i want this?  number of values to be computed across the diameter
 #
-#=============================================================================#
+#==============================================================================#
 
+  # default pixel size in degrees, from IRI-DL
+    MODIS.pixel.size  <-  0.00221704 
+    SPOT.pixel.size   <-  0.008928572 
 
+    long.eq <- 111.32 # number of kilometers between longitude degrees at equator, 
+                      # if we decide to make adjustments to account for 
+                      # shrinking pixel sizes when moving towards poles 
 
+    diameter.range <- diameter.range / long.eq  # returns input argument in deg
+  
 
+#======================= ARC - VI Spatial Correlation ==========================
 
-
-# ---- Graphical Output -----
-#
-# Here we use a combinations of existing map packages with ggplot2 
-#
-
-
-
-
-
-
-
-
-#======================= ARC - VI SPATIAL CORRELATION =========================#
 #
 # Uses a correlation threshold 'r' such that all pixels whose ARC-VI correlation 
 # coefficients exceeding 'r' inside the specified bounding box are averaged 
@@ -411,7 +403,7 @@ else
 
   # create template df from which early/late windows will be drawn - final agreement % values will be stored here as we move through the loop 
     agree.df <- data.frame(Latitude = site.data[,"Latitude"], Longitude = site.data[,"Longitude"], Agreement = NA)
-    rownames(spatial.agree.df) <- rownames(site.data)
+    rownames(agree.df) <- rownames(site.data)
     
     agree.early <- agree.df 
     agree.late <- agree.df 
@@ -434,6 +426,15 @@ for (site in rownames(site.data)){
   dekdelay <- 0 
   earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
   latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
+  
+  
+   
+  
+  
+  # PSEUDO - this is where the rescaled outputs will be generated 
+  month <- earlymonth
+ # evi.scale.early <- evi.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Month = earlymonth, Size = )  
+
   
   # generates lagged EVI values for all years available   
   evi.early <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = corr.value, Month = earlymonth), Window = "Early") 
@@ -461,9 +462,9 @@ for (site in rownames(site.data)){
     late.ranks <- round(Fn(evi.late$flag),digits = 2)
     late.worst <- evi.late$Year[which(late.ranks <= badyear.thres)]
     
-  print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), "early window years for the ", years[1], years[length(years)], " period are ", early.worst))
+  print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " early window years for the [", years[1], ",", years[length(years)], "]", " period are ", early.worst[1], ",", early.worst[2]))
   
-  print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), "late window years for the ", years[1], years[length(years)], " period are ", late.worst)) 
+  print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " late window years for the [", years[1], ",", years[length(years)], "]", " period are ", late.worst[1], ",", late.worst[2])) 
   
   # PSEUDO - now run an agree function to find out what percent of years are matching     
   
@@ -484,61 +485,6 @@ arc.evi <- rbind(cbind(agree.early, Window = "Early"), cbind(agree.late, Window 
 
 ti <- paste0("ARC-EVI Agreement for Pixels with R > ", corr.value)
 
-print(ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = arc.evi)) + geom_point(aes(color = Agreement)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window) + labs(title = ti))    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-######## Variable Grid Size Rank Correlation ######### 
-
-#Enables user to specify a preferred grid size to determine how closely it
-#matches to alternative index (e.g., ARC2, RFE, etc.)
-
-
-
-
-
-
-
-    range.number <- 10    # number of values to be computed across the diameter
-                          # must be >= 2 
-
-  ## Product pixel sizes (square)
-    MODIS.pixel.size  <-  0.00221704 
-    SPOT.pixel.size   <-  0.008928572 
-
-
-long.eq <- 111.32 # number of kilometers between longitude degrees at equator, if we decide to make adjustments to account for shrinking pixel sizes 
-
-
-
-
-
-
-
-
-
-
-
+  ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = arc.evi)) + geom_point(aes(color = Agreement)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window) + labs(title = ti)    
+  fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.pdf")
+  ggsave(file = fn, scale = 1.5)

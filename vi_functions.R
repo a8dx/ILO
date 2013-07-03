@@ -169,6 +169,16 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05){
 
 
 
+# more work needs to be done on this.  
+evi.regrid <- function(GridScale){
+  # gridscale is a value in degrees 
+ 
+   out <- eval(evi.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Month = month, CorrThreshold = 0, Size = GridScale, RegridSize = MODIS.pixel.size))
+  return(out)
+} # end evi.regrid 
+
+
+
 
 
 
