@@ -1,22 +1,22 @@
-ILO
+ILO July 2013 Report 
 ===
 
-ILO_Materials
+
 
 
 Tasks 
 === 
+* Modify ggmap output to not deal with baselayer - use same syntax as for woreda/site maps 
+* Can create a way to ensure that number of plots on a single row is not excessive, instead of standard nrow = 1 argument
 * Identify why spatial correlation late window is not working.. 
 * Determine if reason for discrepancy against earlier tables is because of imported contract parameters 
 * Can save the downloaded EVI files to an output folder and create a flag to avoid lengthy downloads 
-* Save ggplot figures as external PDFs - takes too long to load as internal plots 
 * Better integration between evi.regrid and evi.corr.regrid is needed - further work needed to operationalize evi.regrid
 * Create an "agree" function which is common to several sections of code - can leverage on the existence of the vi.compare function 
 * Plots for scaled VI box - agreement with worst years 
 * Review the code and determine what can be turned into functions 
 * Work on stage 2 of grid scaling: first I work on getting the total grid to function properly
 * Identify which windows were used for calculating early/late ARC2 in Phase One report 
-* Testing MODIS data under new IRI-DL servers
 * Presumable scoping problems in grabbing df in the `arc.vi.vis' function in "vi_functions.R" - have searched the S/O forums but not found an answer that works
 * Consider working with stamen maps, code example below 
 
