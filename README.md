@@ -6,6 +6,7 @@ ILO July 2013 Report
 
 Tasks 
 === 
+* Speak with Dan about how multiple years with same precip value were handled in rankings - e.g. MayTeklia with early window tie of 3 
 * Can create a way to ensure that number of plots on a single row is not excessive, instead of standard nrow = 1 argument
 * Identify why spatial correlation late window is not working.. 
 * Determine if reason for discrepancy against earlier tables is because of imported contract parameters 
