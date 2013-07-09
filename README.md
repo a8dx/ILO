@@ -6,7 +6,6 @@ ILO July 2013 Report
 
 Tasks 
 === 
-* Modify ggmap output to not deal with baselayer - use same syntax as for woreda/site maps 
 * Can create a way to ensure that number of plots on a single row is not excessive, instead of standard nrow = 1 argument
 * Identify why spatial correlation late window is not working.. 
 * Determine if reason for discrepancy against earlier tables is because of imported contract parameters 
@@ -24,6 +23,7 @@ Tasks
 Completed Tasks
 === 
 * Send brief write-up of Chris/Marshall's work to Chris for review - 7/2 - awaiting response from Marshall  
+* Modify ggmap output to not deal with baselayer - use same syntax as for woreda/site maps 
 
 
 
