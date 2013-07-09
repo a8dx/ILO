@@ -38,6 +38,8 @@
 
 
 # =========================  Edit History  ===================================== 
+# 7/9 (ALD) - added both woreda and site-level map plots so that in write-up
+#             we can refer to specific areas when making comments about results        
 # 7/3 (ALD) - further documentation work, some pseudo-coding for necessary work
 #             problems accessing ggplot2 functions inside function, requires 
 #             some repetition of procedures - need to discuss with Helen 
@@ -58,6 +60,7 @@
 # pushing forward with design -> should move to creating generic functions 
 #
 # * Currently only focusing on ARC2 data, but have also included RFE rankings 
+# * May encounter download problems with IRI-DL, solution is to try again.  
 #
 # VARIABLES OF INTEREST
 # * vi.mat = matrix of agreement percentage with ARC data by VI product
@@ -99,10 +102,10 @@
 # ---- Read in Precipitation Data -----
 
   # range of years covered in analysis, specified in Phase One report 
-    years <- as.character(seq(2003,2011))  
+    years <- as.character(seq(2000,2011))  
   
   # choose the scenario to work with (draws upon existing file/folder structure)
-    base.path <- "~/Documents/Index_Insurance/sniidharita_fist/WIIET_Data/Dry2013Initial/"
+    base.path <- "~/Documents/Index_Insurance/sniidharita_fist/WIIET_Data/Dry2012satellite/"
   # read in sitetable and common dekad files 
     site.data <- read.csv(paste0(base.path,"common.data/sitetable.csv"), header = TRUE, row.names = 1)
     dekad.cal <- read.csv(paste0(base.path,"common.data/CalendarYearDayDecad.csv"), header = F, skip = 2, row.names = 1)
@@ -144,6 +147,14 @@
     vi.rankings <- array(data = NA, dim = c(length(rownames(site.data)), length(years), length(prods)))
     dimnames(vi.rankings) <- list(rownames(site.data), years, prods)
 
+  # create single matrix to hold the worst years for all ARC windows  
+    event.years <- 2*badyear.thres*length(years)
+    arc.worst <- matrix(data = NA, ncol = event.years, nrow = dim(site.data)[1])
+    rownames(arc.worst) <- rownames(site.data)
+    colnames(arc.worst) <- rep(phases, each = event.years/2) # gives "Early Early..."
+
+
+
   # begin comparison process on a site-by-site basis 
     for (site in rownames(site.data)){
       
@@ -155,28 +166,47 @@
         rfe.sub <- rfe[years,]  #only years we're interested in 
         rfe.p1 <- rfe.sub[years,"X1"] # first phase 
         rfe.p2 <- rfe.sub[years,"X3"] # second phase 
+
+       
+      ##### Have not worried about RFE for this analysis, but base work is here #  
        
       # generate rankings 
-        Fn1 <- ecdf(rfe.p1)
-        Fn2 <- ecdf(rfe.p2) 
-        r1 <- round(Fn1(rfe.p1), digits = 2)   # ranks for 1st phase
-        r2 <- round(Fn2(rfe.p2), digits = 2)   # ranks for 2nd phase
+#        Fn1 <- ecdf(rfe.p1)
+#        Fn2 <- ecdf(rfe.p2) 
+#        r1 <- round(Fn1(rfe.p1), digits = 2)   # ranks for 1st phase
+#        r2 <- round(Fn2(rfe.p2), digits = 2)   # ranks for 2nd phase
       
       # identify the years in the bottom "badyear.thres" - problem with ties (what to do?)
-        rfe.years.early <- rownames(rfe.sub)[which(rfe.p1 <= quantile(rfe.p1,probs = badyear.thres))]   
-        rfe.years.late <- rownames(rfe.sub)[which(rfe.p2 <= quantile(rfe.p2,probs = badyear.thres))]
+#        rfe.years.early <- rownames(rfe.sub)[which(rfe.p1 <= quantile(rfe.p1,probs = badyear.thres))]   
+#        rfe.years.late <- rownames(rfe.sub)[which(rfe.p2 <= quantile(rfe.p2,probs = badyear.thres))]
       
       # define sowing windows to calculate ARC rainfall by using dekad calendar 
       # days given for comparison against earlier reports 
-        early.start       <- min(which(dekad.cal == site.data[site,"EarlyFirst"]))
-        early.end   <- max(which(dekad.cal == site.data[site,"EarlyLast"])) 
-        late.start  <- min(which(dekad.cal == site.data[site,"LateFirst"]))
-        late.end    <- max(which(dekad.cal == site.data[site,"LateLast"]))
-        early.dates <- c(rownames(dekad.cal)[early.start], rownames(dekad.cal)[early.end])
+       
+       # following variables are defined on sitetable values, not individual contracts
+      #  early.start <- min(which(dekad.cal == site.data[site,"EarlyFirst"]))
+      #  early.end   <- max(which(dekad.cal == site.data[site,"EarlyLast"])) 
+      #  late.start  <- min(which(dekad.cal == site.data[site,"LateFirst"]))
+      #  late.end    <- max(which(dekad.cal == site.data[site,"LateLast"]))
+       
+      # these variables defined based on site contracts, following format of sniiddemo code
+       
+      # read in window data from site-specific contract 
+       
+      contract <- paste0(base.path, scen, site, "/payout.data/contract.R") 
+      source(contract)
+       
+      early.start <- min(which(dekad.cal == (t$phases[1,1]+t$swfirst-1)))
+      early.end <- max(which(dekad.cal == (t$phases[2,1]+t$swfirst-1)))
+      late.start <- min(which(dekad.cal == (t$phases[1,3]+t$swfirst-1)))
+      late.end <-  max(which(dekad.cal == (t$phases[2,3]+t$swfirst-1)))
+       
+      # give the actual MMM-DD days for comparison purposes  
+       early.dates <- c(rownames(dekad.cal)[early.start], rownames(dekad.cal)[early.end])
         late.dates  <- c(rownames(dekad.cal)[late.start], rownames(dekad.cal)[late.end])
         
       # read ARC precip file in day-year format
-        arc           <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
+        arc <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
         colnames(arc) <- substr(colnames(arc),2,5)   # remove X from character string preceding colnames
       
       # create subset of only arc data over years in "years", take sum over window timings 
@@ -184,10 +214,26 @@
         earlies   <- colSums(arc.sub[early.start:(early.end),])
         lates     <- colSums(arc.sub[late.start:(late.end),]) 
       
-      # identify which years satisfy the quantile requirement 
+      # identify which years satisfy the quantile requirement, NA as a flag if  
         arc.years.early <- colnames(arc.sub)[which(earlies <= quantile(earlies, probs = badyear.thres))]
+       
+      # since I modify the rowname, need an alternative way to call the rowname value 
+       rowname.num <- which(rownames(arc.worst) == site)
+       if (length(arc.years.early) != badyear.thres*length(years)){
+         # coerce into being the right vector length, raise flag by changing site name
+         rownames(arc.worst)[rowname.num] <- paste0(rownames(arc.worst)[rowname.num],"E",length(arc.years.early))
+         arc.years.early <- arc.years.early[1:(badyear.thres*length(years))] 
+       }
+       
         arc.years.late  <- colnames(arc.sub)[which(lates <= quantile(lates, probs = badyear.thres))]
-      
+       if (length(arc.years.late) != badyear.thres*length(years)){
+         # coerce into being the right vector length, raise flag by changing site name
+         rownames(arc.worst)[rowname.num] <- paste0(rownames(arc.worst)[rowname.num],"L",length(arc.years.late))
+         arc.years.late <- arc.years.late[1:(badyear.thres*length(years))] 
+       }     
+       
+       
+       
       # write-in the ecdf rankings of arc estimates
         arc.Fn <- ecdf(earlies)
         arc.ranks[site,,"Early"]  <- round(arc.Fn(earlies), digits = 2) 
@@ -197,6 +243,7 @@
        
       # returns vector of rankings agreement (overlap) results for early window
       # uses "vi.compare" from vi_functions script  
+      # vi.mat includes both early and late rankings, whereas other objs don't   
         phase <- "Early"
         print(sapply(prods,vi.compare))
         vi.mat[site,phaseprod1] <- sapply(prods, vi.compare) 
@@ -212,9 +259,15 @@
         dimnames(ranks.mat) <- list(site,years,prods)
         vi.rankings[site,,]  <-  ranks.mat
     
+        arc.worst[rowname.num,] <- as.numeric(c(arc.years.early,arc.years.late))         
+       
   } # end of across sites loop 
 
-  # write product-level ecdf rankings to csv
+  # write worst ARC years by window to file 
+    f.out <- paste0(out.path,"ARC_worst_years",years[1],"-", years[length(years)],".csv")
+    write.csv(arc.worst, f.out) 
+
+  # write single-phase, product-level ecdf rankings to csv
   # how could i approach this using a non-for loop approach?
     f.out <- paste0(out.path,prods,years[1],"-",years[length(years)],"rankings.csv")
     for (i in 1:length(prods)){
@@ -225,10 +278,10 @@
   # create all-site rankings table with lat/lon coordinates 
   # need to add lat/lon & site names as separate entry since previously only used as rownames 
     arc.early <-cbind(arc.ranks[,,"Early"],site.data[,c("Latitude","Longitude")],rownames(site.data))
-      colnames(arc.early)[12] <- "site"
+      colnames(arc.early)[(length(years)+3)] <- "site"
       rownames(arc.early) <- NULL
     arc.late <- cbind(arc.ranks[,,"Late"],site.data[,c("Latitude","Longitude")], rownames(site.data))
-      colnames(arc.late)[12] <- "site"
+      colnames(arc.late)[(length(years)+3)] <- "site"
       rownames(arc.early) <- NULL
   
 # make sure we have the same order of sites across objects
@@ -258,14 +311,46 @@ if (identical(rownames(site.data), rownames(vi.mat))){
 
 # ---- Visualization --------------------
 
+  # API key from Cloud Made Maps
+    cm.key <- "3ba6f5c05bc142209d423981fcbacb4a"  
+
+  # create map scenes that have site label text atop map layer, split into N and S 
+  # first divide into two scenes, since much of the land in the larger bounding box 
+  # does not include any sites 
+    s.sites <- subset(site.data, Latitude < 9, select = c(Latitude, Longitude, Woreda))
+    n.sites <- subset(site.data, Latitude > 12, select = c(Latitude, Longitude, Woreda))
+  
+  # create bounding box coordinates, specify buffer size, function in vi_functions.R
+    s.coords <- make.coords(s.sites, 0.1)
+    n.coords <- make.coords(n.sites, 0.1)
+
+  # read in cloudmade maps given bounding information from make.coords functions
+    s.map <- get_cloudmademap(bbox = c(left = s.coords$l, bottom = s.coords$b, right = s.coords$r, top = s.coords$t), api_key = cm.key)  
+    n.map <- get_cloudmademap(bbox = c(left = n.coords$l, bottom = n.coords$b, right = n.coords$r, top = n.coords$t), api_key = cm.key)  
+
+  # maps of site labels, saved to output folder 
+    ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(s.sites)), data = s.sites, size = 3) + labs(title = "Ethiopia Harita Sites (S)")
+    ggsave(filename = paste0(out.path,"EthSouthSitesMap.pdf"))
+
+    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(n.sites)), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Sites (N)")
+    ggsave(filename = paste0(out.path,"EthNorthSitesMap.pdf"))
+
+  # maps of woreda labels, saved to output folder 
+    ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = s.sites, alpha = 1.0, size = 5) + labs(title = "Ethiopia Harita Woredas (S)")
+    ggsave(filename = paste0(out.path,"EthSouthWoredasMap.pdf"))
+
+    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Woredas (N)")
+    ggsave(filename = paste0(out.path,"EthNorthWoredasMap.pdf"))
+
+
+
 # set bounding box coordinates for map background. 
 # May consider modifying to exclude Michael Debir for crisper presentation. 
 # Problems arise when df points are outside the bounding box grabbed from OSM, 
 # therefore ensure they are inside.
 
 
-  # API key from Cloud Made Maps
-    cm.key <- "3ba6f5c05bc142209d423981fcbacb4a"  
+
 
 
   b.s <- 0.2  # buffer size in degrees, for how large to create the bounding box around the selected bounding box edge pixels  
@@ -280,10 +365,7 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
       l <- override.box[1]; b <- override.box[2]; r <- override.box[3]; t <- override.box[4]
     } else{
       # default bounding box coordinates, including the earlier specified b.s
-  l <- min(arc.early$Longitude) - b.s
-  b <- min(arc.early$Latitude) - b.s
-  r <- max(arc.early$Longitude) + b.s
-  t <- max(arc.early$Latitude) + b.s
+eth.coords <- make.coords(arc.early, b.s)
     }
 
 
@@ -298,15 +380,15 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
 
   # set standard map base layers   
     theme_set(theme_bw(16))
-    outmap <- get_cloudmademap(bbox = c(left = l, bottom = b, right = r, top = t), api_key = cm.key)  
+    outmap <- get_cloudmademap(bbox = c(left = eth.coords$l, bottom = eth.coords$b, right = eth.coords$r, top = eth.coords$t), api_key = cm.key)  
 
-  # generate early window ARC rankings 
-    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_e)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Early Window Rankings")
+  # generate early window ARC rankings, can modify number of rows output appears in  
+    ggmap(outmap) + geom_point(aes(x= Longitude, y = Latitude, color = Ranking), data = a_e) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Early Window Rankings")
     ggsave(file = paste0(out.path, "ARCearlyranks.pdf"), scale = 1.5)
 
   # generate late ARC ranks 
   # wrap in print() to display plot on-screen  
-    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = a_l)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC Late Window Rankings")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Ranking), data = a_l) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Late Window Rankings")
     ggsave(file = paste0(out.path,"ARClateranks.pdf"), scale = 1.5)
     
 
@@ -333,7 +415,7 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
 
   # ARC-VI Agreement on Worst Years
     # this can serve as the benchmark against which other versions can be compared to evaluate any performance gains from regridding, spatial correlation, etc.  
-    ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = vi.2)) + geom_point(aes(color = value)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable) + labs(title = "ARC-VI Worst Year Agreement %")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1 ) + labs(title = "ARC-VI Worst Year Agreement %")
     ggsave(file = paste0(out.path, "ARCEVIagree.pdf"), scale = 1.5)
 
 
@@ -382,6 +464,14 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
     diameter.range <- diameter.range / long.eq  # returns input argument in deg
   
 
+
+
+
+
+
+
+
+
 #======================= ARC - VI Spatial Correlation ==========================
 
 #
@@ -395,7 +485,7 @@ override.box <- c("L","B","R","T")    # active only when override = TRUE, vector
 
   # specify years of interest - uncomment 1st to reuse years from beginning of analysis 
       # years <- years   
-        years <- as.character(seq(2000,2012))  
+        years <- as.character(seq(2002,2012))  
   
 #=============================================================================#
 
@@ -418,11 +508,13 @@ for (site in rownames(site.data)){
   # have to read in site-specific contract parameters to determine which dekads to pull VI products for 
   contract.pth<-paste0(base.path,scen,site,"/payout.data/contract.R")
   source(contract.pth)
+  
   midearly<-as.integer(t$swfirst+(t$phases[2,1]+t$phases[1,1])/2)
   midlate<-as.integer(t$swfirst+(t$phases[2,3]+t$phases[1,3])/2)
   
   # 4 dekads later was the [adjustable] standard delay 
-  # delay already inherent in IRI Data Library code in evi.corr.regrid 
+  # delay already inherent in IRI Data Library code in evi.corr.regrid since using
+  # shiftdatashort with a 1 month lag 
   dekdelay <- 0 
   earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
   latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
@@ -438,6 +530,7 @@ for (site in rownames(site.data)){
   
   # generates lagged EVI values for all years available   
   evi.early <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = corr.value, Month = earlymonth), Window = "Early") 
+  
   evi.late <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = corr.value, Month = latemonth), Window = "Late") 
   
   # now subset to the years of interest and identify which years agree with ARC worst
@@ -447,19 +540,20 @@ for (site in rownames(site.data)){
   
   # drop the original "Time" column 
     evi.early <- subset(evi.early, select = -Time)
-    evi.late  <- subset(evi.late, Year == years, select = -Time)
+   # evi.late  <- subset(evi.late, Year == years, select = -Time)
+    evi.late  <- subset(evi.late, select = -Time)
   
   # PSEUDO - create code to ensure that all years are providing data for the same month
 
     evi.early <- evi.early[is.element(evi.early$Year,years),]
     evi.late  <- evi.late[is.element(evi.late$Year,years),]
   
-    Fn <- ecdf(evi.early$flag) # since under the function, IRIDL generates "flag" 
-    early.ranks <- round(Fn(evi.early$flag),digits = 2)
+    Fn <- ecdf(evi.early$correlation) # since under the function, IRIDL generates "correlation" 
+    early.ranks <- round(Fn(evi.early$correlation),digits = 2)
     early.worst <- evi.early$Year[which(early.ranks <= badyear.thres)]
   
-    Fn <- ecdf(evi.late$flag) # since under the function, IRIDL generates "flag" 
-    late.ranks <- round(Fn(evi.late$flag),digits = 2)
+    Fn <- ecdf(evi.late$correlation) # since under the function, IRIDL generates "flag" 
+    late.ranks <- round(Fn(evi.late$correlation),digits = 2)
     late.worst <- evi.late$Year[which(late.ranks <= badyear.thres)]
     
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " early window years for the [", years[1], ",", years[length(years)], "]", " period are ", early.worst[1], ",", early.worst[2]))
@@ -483,8 +577,10 @@ for (site in rownames(site.data)){
 #PSEUDO - insert visualization function here, when it's working 
 arc.evi <- rbind(cbind(agree.early, Window = "Early"), cbind(agree.late, Window = "Late"))
 
-ti <- paste0("ARC-EVI Agreement for Pixels with R > ", corr.value)
+  # plot title 
+    ti <- paste0("ARC-EVI Agreement for Pixels with R > ", corr.value)
+  # plot filename  
+    fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.pdf")
 
-  ggmap(outmap, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = arc.evi)) + geom_point(aes(color = Agreement)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window) + labs(title = ti)    
-  fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.pdf")
+  ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = arc.evi) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
   ggsave(file = fn, scale = 1.5)

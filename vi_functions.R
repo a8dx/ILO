@@ -71,17 +71,14 @@ vi.ecdf <- function(product){
   # Output table is generated in main script 
 
   # product is "EVI", "NDVI", etc.
-  # phase and satellite must already be defined: satellite is "Mod" or "Spo", phase is "early" or "late"  
+  # `phase' and `satellite' must already be defined: `satellite' is "Mod" or "Spo", `phase' is "early" or "late"  
   
   if(any(!is.na(vi.common(product)))){ #returns NA if file does not exist 
-    
       vi <- vi.common(product)
-    
       Fn1 <- ecdf(vi)
       res <- round(Fn1(vi), digits = 2) 
     }
 
-  
   # if VI file does not exist 
     else {res <- rep(NA,length(years))}
     
@@ -100,7 +97,7 @@ vi.ecdf <- function(product){
   
   
   
-  make.coords <- function(Lat,Lon,Range,Points){ 
+  make.coords2 <- function(Lat,Lon,Range,Points){ 
     #make.coords creates a matrix of all evenly-spaced lat/lon pairs, to create a grid of VI data values 
     coords.mat <- matrix(data = NA, ncol = 2)
     lat.range <- seq(Lat - Range / (2*long.eq), Lat + Range / (2*long.eq), by = (2*Range/long.eq)/(Points-1))    #extent of lat range
@@ -110,6 +107,17 @@ vi.ecdf <- function(product){
     return(coords.mat)
   }
   
+
+
+make.coords <- function(df,Buffer){
+  # Reads in the max/min lat/lon of a df with Latitude and Longitude columns 
+  # and generates a list of bounding coordinates to be read into a ggmap setting, 
+  # given a user-specified buffer, e.g., (0.1 degrees)
+  
+  return(list(l = min(df$Longitude)-Buffer, b = min(df$Latitude)-Buffer, r = max(df$Longitude)+Buffer, t = max(df$Latitude)+Buffer))
+
+}
+
   coord.range <- function(Lat,Lon,Range){ 
     #Provides the edge values of a lat-lon grid given user-specified distance value from site pixel
     coords.out <- matrix(data = NA, nrow = 2, ncol = 2)
@@ -142,7 +150,7 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05){
       ad6 <- paste0("Y/", Lat-Size, "/", RegridSize, "/", Lat+Size, "/GRID/")
       ad7 <- "T/1.0/monthlyAverage/T/1/1/1/shiftdatashort"
       ad8 <- "/[T]/correlate/"
-      ad9 <- paste0(CorrThreshold, "/flaggt") 
+      ad9 <- paste0(CorrThreshold, "/maskle") 
       ad10 <- ad4
       ad11 <- ad5
       ad12 <- ad6
