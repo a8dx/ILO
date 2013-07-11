@@ -7,9 +7,13 @@ http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DA
 
 Tasks 
 === 
+<<<<<<< HEAD
 * Automate procedure of reviewing across correlation values - consolidate results into a single dataframe that includes correlation value as a column  - need to make graphic of this
 * Create a matrix and visual output that would show the XY average of each site's correlation 
 * Would be great to incorporate farmers' worst years from the sitetable, but it appears that the latest 'worst' year is 2002 - this cannot be usable from an EVI perspective.  
+=======
+* Speak with Dan about how multiple years with same precip value were handled in rankings - e.g. MayTeklia with early window tie of 3 
+>>>>>>> b25e53a17f70995378837642622062fe1f369e80
 * Can create a way to ensure that number of plots on a single row is not excessive, instead of standard nrow = 1 argument
 * Identify why spatial correlation late window is not working.. 
 * Determine if reason for discrepancy against earlier tables is because of imported contract parameters 
