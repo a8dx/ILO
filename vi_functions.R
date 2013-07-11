@@ -130,7 +130,7 @@ make.coords <- function(df,Buffer){
 
 
 
-evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05){
+evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lags = FALSE){
   environment()  
   # produces a time-series of monthly, X-Y averaged 1-mo lag of EVI
     # for a specified 3-letter month 
@@ -140,35 +140,55 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05){
     # RegridSize : in degrees, what scale is he underlying MODIS data regridded to
     # CorrThreshold : threshold value for which pixel-level correlations between EVI and ARC under this value are masked out as NA 
     # Month : 3-letter string specifying which months to focus on in identifying worst years 
+    # Lags : enables capture of XY average correlation values across pre-specified lags
       
-    # create IRI-DL url in stages given input values   
+    # create IRI-DL url in stages given input values 
+    # keeping as small segments to improve flexibility for future functioning 
+  lagval <- paste0("T/",lag.start,"/1/",lag.end,"/shiftdatashort")
       ad1 <- "http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DAILY/.ARC2/.daily/.est_prcp"
       ad2 <- paste0("/X/",Lon,"/VALUE/Y/",Lat,"/VALUE/")
       ad3 <- "X/removeGRID/Y/removeGRID/T/1.0/monthlyAverage"
       ad4 <- "/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/"
-      ad5 <- paste0("X/",Lon-Size,"/", RegridSize, "/", Lon+Size, "/GRID/")
-      ad6 <- paste0("Y/", Lat-Size, "/", RegridSize, "/", Lat+Size, "/GRID/")
-      ad7 <- "T/1.0/monthlyAverage/T/1/1/1/shiftdatashort"
-      ad8 <- "/[T]/correlate/"
-      ad9 <- paste0(CorrThreshold, "/maskle") 
-      ad10 <- ad4
-      ad11 <- ad5
-      ad12 <- ad6
-      ad13 <- ad7
-      ad14 <- "/mul/[X/Y]average/T/("
-      ad15 <- paste0(Month, ")RANGE/")
-      ad16 <- "T+exch+table-+text+text+-table++.csv"
+      ad5 <- paste0("X/",Lon-Size,"/", Lon+Size, "/RANGEEDGES/")
+      ad6 <- paste0("Y/", Lat-Size, "/", Lat+Size, "/RANGEEDGES/")
+      ad7 <- paste0("X/", RegridSize, "/", "0.9/boxAverage/Y/", RegridSize, "/", "0.9/boxAverage/")
+      ad8 <- "T/1.0/monthlyAverage/"
+      ad9 <- paste0("T/1/1/1/shiftdatashort")
+      ad10 <- "/[T]/correlate/"
+      ad11 <- paste0(CorrThreshold, "/maskle") 
+      ad12 <- ad4
+      ad13 <- ad5
+      ad14 <- ad6
+      ad15 <- ad7
+      ad16 <- ad8
+      ad17 <- "mul/[X/Y]average/"
+      ad18 <- paste0("T/(",Month, ")RANGE/")
+      ad19 <- "T+exch+table-+text+text+-table++.csv"
       
       # need to ensure get function calls variables from proper environment
   myfunc <- function(x){
     return(get(x,envir = as.environment(-1)))
   }    
   
-  # pieces together segments to generate a unified, usable URL 
-    vec <- paste0("ad",1:16) 
-    url.name <- capture.output(cat(unlist(lapply(vec,myfunc)), sep = "", collapse = ""))
-    print(paste0("Downloading from " ,url.name))
+  # modifying url to reflect capture only of correlation values 
+  if (Lags == TRUE){
+    ad7 <- ""
+    ad15 <- ""
+    ad9 <- lagval
+    ad11 <- ""
+    ad12 <- ""
+    ad13 <- ""
+    ad14 <- ""
+    ad15 <- ""
+    ad16 <- ""
+    ad17 <- "[X/Y]average/"
+    ad18 <- ""
+    ad19 <- "T_lag+exch+table-+text+text+-table++.csv"}
   
+  # pieces together segments to generate a unified, usable URL 
+    vec <- paste0("ad",1:19) 
+    url.name <- capture.output(cat(unlist(lapply(vec,myfunc)), sep = "", collapse = ""))
+
   # specify output .csv filename and location
     fout <- paste0(out.path,"/evicorr_temp.csv")
       download.file(url.name, fout)
@@ -230,7 +250,15 @@ arc.vi.vis <- function(x.df){
   outmap <- get_cloudmademap(bbox = c(left = l, bottom = b, right = r, top = t), api_key = cm.key)  
   
   # modify this portion if want to change gradient colors 
-    ggmap(outmap, base_layer = ggplot(x.df, aes_string(x=Longitude, y=Latitude))) + geom_point(aes_string(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable)
+    ggmap(outmap) + geom_point(aes_string(x = Longitude, y = Latitude, color = Ranking), data = x.df) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable)
           
 } # end arc.vi.vis 
 
+find.worst <- function(obj){
+  # Returns the years of an obj with column "Year" falling below passed in 'badyear.thres' value
+  # Requires obj to also have "correlation" column 
+  # Could generalize and include an input parameter corresponding to column to be ranked
+  Fn <- ecdf(obj$correlation) 
+  ranks <- Fn(obj$correlation)
+  return(obj$Year[which(ranks <= badyear.thres)])
+}

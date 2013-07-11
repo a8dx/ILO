@@ -38,14 +38,25 @@
 
 
 # =========================  Edit History  ===================================== 
-# 7/9 (ALD) - added both woreda and site-level map plots so that in write-up
+# 7/11(ALD) - fixed url problems in evi.corr.regrid - now have flexibility of 
+#             calling function using a Lags argument to produce the lag.df obj.
+# 7/10(ALD) - added a 'total.worst.years' with output csv in lieu of modifying
+#             the arc.worst matrix - this gives total years that are below 
+#             threshold and therefore sites to focus on for potential contract
+#             problems 
+#
+#             Need to fix calls to arc.early from first site forloop by calling
+#             the ARC_worst_years*.csv.  Will improve spatial correlation data. 
+#
+#             Created lag.df to capture lag correlation values - could make for 
+#             a nice accessory plot 
+# 7/9(ALD)  - added both woreda and site-level map plots so that in write-up
 #             we can refer to specific areas when making comments about results        
-# 7/3 (ALD) - further documentation work, some pseudo-coding for necessary work
+# 7/3(ALD)  - further documentation work, some pseudo-coding for necessary work
 #             problems accessing ggplot2 functions inside function, requires 
 #             some repetition of procedures - need to discuss with Helen 
-# 7/2 (ALD) - improved plotting using ggmap, streamlined documentation 
-# 7/1 (ALD) - created evi.corr.regrid function in vi_functions.R, auxiliary to
-# this file
+# 7/2(ALD)  - improved plotting using ggmap, streamlined documentation 
+# 7/1(ALD)  - created evi.corr.regrid function in vi_functions.R, 
 
 # ******************************************************************************
 
@@ -61,11 +72,18 @@
 #
 # * Currently only focusing on ARC2 data, but have also included RFE rankings 
 # * May encounter download problems with IRI-DL, solution is to try again.  
+# * At present, specific spatial correlation values are manually entered and file 
+#     downloaded - in future should create function which analyzes many 
+#     correlation values simultaneously.  Follow-up analysis can currently be 
+#     performed by specifying which correlation values to consider, given 
+#     filename structure.  
 #
 # VARIABLES OF INTEREST
 # * vi.mat = matrix of agreement percentage with ARC data by VI product
 # * arc.ranks = for validating earlier ILO results: gives ECDF ranks across 
 #     early and late phases 
+# * arc.worst = takes the two [first] worst years for both early and late windows
+#     complete 'worst' (due to multiple values) saved in separate file 
 # ******************************************************************************
 
 
@@ -148,11 +166,17 @@
     dimnames(vi.rankings) <- list(rownames(site.data), years, prods)
 
   # create single matrix to hold the worst years for all ARC windows  
-    event.years <- 2*badyear.thres*length(years)
+    event.years <- length(phases)*badyear.thres*length(years)
     arc.worst <- matrix(data = NA, ncol = event.years, nrow = dim(site.data)[1])
     rownames(arc.worst) <- rownames(site.data)
     colnames(arc.worst) <- rep(phases, each = event.years/2) # gives "Early Early..."
-
+  
+  # create matrix to hold complete worst years for all ARC windows
+  #  (not restricted to just badyear.thres * length(years) count per window)
+  # adds NA values to latter end of incoming strings 
+    total.event.years <- length(phases)*length(years)
+    colheads <- as.vector(t(outer(phases,1:length(years), FUN = "paste0")))
+    total.worst.years <- matrix(data = NA, ncol = total.event.years, nrow = length(rownames(site.data)), dimnames = list(rownames(site.data),colheads))
 
 
   # begin comparison process on a site-by-site basis 
@@ -216,21 +240,24 @@
       
       # identify which years satisfy the quantile requirement, NA as a flag if  
         arc.years.early <- colnames(arc.sub)[which(earlies <= quantile(earlies, probs = badyear.thres))]
+      # raise flag by creating a dupe version with complete data
+         arc.years.early.tot <- arc.years.early
        
-      # since I modify the rowname, need an alternative way to call the rowname value 
-       rowname.num <- which(rownames(arc.worst) == site)
+    # coerce into being the right vector length 
        if (length(arc.years.early) != badyear.thres*length(years)){
-         # coerce into being the right vector length, raise flag by changing site name
-         rownames(arc.worst)[rowname.num] <- paste0(rownames(arc.worst)[rowname.num],"E",length(arc.years.early))
-         arc.years.early <- arc.years.early[1:(badyear.thres*length(years))] 
+         arc.years.early <- arc.years.early[1:(badyear.thres*length(years))]
        }
        
         arc.years.late  <- colnames(arc.sub)[which(lates <= quantile(lates, probs = badyear.thres))]
+       # raise flag by creating a dupe version with complete data
+        arc.years.late.tot <- arc.years.late    
+    # coerce into being the right vector length 
        if (length(arc.years.late) != badyear.thres*length(years)){
-         # coerce into being the right vector length, raise flag by changing site name
-         rownames(arc.worst)[rowname.num] <- paste0(rownames(arc.worst)[rowname.num],"L",length(arc.years.late))
          arc.years.late <- arc.years.late[1:(badyear.thres*length(years))] 
        }     
+       
+       # to accommodate fixed width of total.worst.years - affixes NA to short strings
+       total.worst.years[site,] <- c(c(arc.years.early.tot,rep(NA,(length(years)-length(arc.years.early.tot)))), c(arc.years.late.tot,rep(NA,(length(years)-length(arc.years.late.tot)))))
        
        
        
@@ -259,13 +286,16 @@
         dimnames(ranks.mat) <- list(site,years,prods)
         vi.rankings[site,,]  <-  ranks.mat
     
-        arc.worst[rowname.num,] <- as.numeric(c(arc.years.early,arc.years.late))         
+        arc.worst[site,] <- as.numeric(c(arc.years.early,arc.years.late))         
        
   } # end of across sites loop 
 
-  # write worst ARC years by window to file 
-    f.out <- paste0(out.path,"ARC_worst_years",years[1],"-", years[length(years)],".csv")
-    write.csv(arc.worst, f.out) 
+
+  # write total worst ARC windows (NA's for shorter strings)
+    write.csv(total.worst.years, paste0(out.path, "ARC_total_worst", years[1], "-", years[length(years)],".csv"))
+
+  # write worst ARC years by window to file  
+    write.csv(arc.worst, paste0(out.path,"ARC_worst_years",years[1],"-", years[length(years)],".csv")) 
 
   # write single-phase, product-level ecdf rankings to csv
   # how could i approach this using a non-for loop approach?
@@ -295,6 +325,9 @@ if (identical(rownames(site.data), rownames(vi.mat))){
   vi.2 <- melt(vi.mat, id.vars = c("site","Latitude", "Longitude"))
   
 } #end if identical clause
+
+  benchmark <- vi.2   # establish as the baseline against 
+                      # which other comparisons are judged
 
 
   # save table to file
@@ -415,7 +448,7 @@ eth.coords <- make.coords(arc.early, b.s)
 
   # ARC-VI Agreement on Worst Years
     # this can serve as the benchmark against which other versions can be compared to evaluate any performance gains from regridding, spatial correlation, etc.  
-    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1 ) + labs(title = "ARC-VI Worst Year Agreement %")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2)      + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1 )      + labs(title = "ARC-VI Worst Year Agreement %")
     ggsave(file = paste0(out.path, "ARCEVIagree.pdf"), scale = 1.5)
 
 
@@ -464,7 +497,10 @@ eth.coords <- make.coords(arc.early, b.s)
     diameter.range <- diameter.range / long.eq  # returns input argument in deg
   
 
-
+for (site in rownames(site.data)){
+  
+  
+}
 
 
 
@@ -474,25 +510,52 @@ eth.coords <- make.coords(arc.early, b.s)
 
 #======================= ARC - VI Spatial Correlation ==========================
 
-#
+# SUMMARY: 
 # Uses a correlation threshold 'r' such that all pixels whose ARC-VI correlation 
 # coefficients exceeding 'r' inside the specified bounding box are averaged 
-# out, generating a single VI value for each time period.  
+# out, generating a single VI value for each time period.  Also includes the 
+# option to determine the average correlation across a user-specified range
+# of lagged months.  
 #
 
-  # specify the correlation coefficient threshold for masking out pixels 
-        corr.value <- 0.7
+  # Specify the correlation coefficient threshold (r) for masking pixels 
+        corr.value <- 0.5
 
-  # specify years of interest - uncomment 1st to reuse years from beginning of analysis 
-      # years <- years   
-        years <- as.character(seq(2002,2012))  
+  # Specify years of interest - uncomment 1st to reuse years from beginning of analysis
+  # preferable to ensure that badyear.thres * length(years) > 2 
+        years <- years   
+      #  years <- as.character(seq(2002,2012))  
   
+  # used in IRI-DL URL construction: when following lag values are equivalent, 
+  # results are for a single lag, e.g.  T 0 1 0 gives no lag.  default is to 
+  # step lags by 1 month each 
+
+  # Do you also want to run an analysis on lagged correlation coefficients?  
+        Run.Lag <- FALSE 
+        lag.start <- -1
+        lag.end <- 3
+
+  # How large around the site pixel do you wish to create a bounding box?
+      # If script fails to run, try reducing this value to shrink the bounding box 
+      # Value should likely be < 0.5 
+        b.s <- 0.4
+
+  # What spatial resolution do you want to regrid EVI values to?
+      # For reference, consider the following pixel sizes (in degrees): 
+      #  MODIS.pixel.size  <-  0.00221704 
+      #  SPOT.pixel.size   <-  0.008928572 
+      # If script fails, try increasing this value 
+      # Value should likely be > 0.005 
+        rg.size <- 0.01
+
 #=============================================================================#
 
+  # read in auxiliary file again to incorporate revised values 
+    source("vi_functions.R")
 
 
   # create template df from which early/late windows will be drawn - final agreement % values will be stored here as we move through the loop 
-    agree.df <- data.frame(Latitude = site.data[,"Latitude"], Longitude = site.data[,"Longitude"], Agreement = NA)
+    agree.df <- data.frame(Latitude = site.data[,"Latitude"], Longitude = site.data[,"Longitude"], Agreement = NA, Year1 = NA, Year2 = NA)
     rownames(agree.df) <- rownames(site.data)
     
     agree.early <- agree.df 
@@ -500,6 +563,24 @@ eth.coords <- make.coords(arc.early, b.s)
 
 # PSEUDO - much of this needs to be turned into a function since repeated for 
 # both early and late windows 
+
+
+    # read in the .csv pertaining to worst years generated from above 
+    # for now, filename corresponds to a file created for same year range as above
+    # this file import should somehow be more flexible in the future  
+    # limiting this portion of the analysis ONLY to the two years from above
+    # under the expectation that contract design should result in 
+    # badyear.thres * length(years) number of "worst years" 
+    arc.worst.years <- read.csv(paste0(out.path, "ARC_worst_years", years[1], "-", years[length(years)],".csv"), header = TRUE, row.names = 1)
+
+
+
+  # create obj that includes the averaged correlation value for each lag 
+    lag.df <- matrix(nrow = dim(site.data)[1], ncol = (lag.end-lag.start+1))
+    rownames(lag.df) <- rownames(site.data)
+    colnames(lag.df) <- paste0("Lag", seq(lag.start,lag.end))
+  #  colnames(lag.df) <- paste0(seq(lag.start,lag.end), "MonthLag")
+
 
 for (site in rownames(site.data)){
   # month of VI values determined in addVEG*.R script : reads in dekad month 
@@ -512,10 +593,10 @@ for (site in rownames(site.data)){
   midearly<-as.integer(t$swfirst+(t$phases[2,1]+t$phases[1,1])/2)
   midlate<-as.integer(t$swfirst+(t$phases[2,3]+t$phases[1,3])/2)
   
-  # 4 dekads later was the [adjustable] standard delay 
+  # 4 dekads later was the [adjustable] standard delay in sniidharita  
   # delay already inherent in IRI Data Library code in evi.corr.regrid since using
   # shiftdatashort with a 1 month lag 
-  dekdelay <- 0 
+  dekdelay <- 4 
   earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
   latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
   
@@ -524,14 +605,24 @@ for (site in rownames(site.data)){
   
   
   # PSEUDO - this is where the rescaled outputs will be generated 
-  month <- earlymonth
+ # month <- earlymonth
  # evi.scale.early <- evi.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Month = earlymonth, Size = )  
 
   
   # generates lagged EVI values for all years available   
-  evi.early <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = corr.value, Month = earlymonth), Window = "Early") 
+  evi.early <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = earlymonth), Window = "Early") 
   
-  evi.late <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = corr.value, Month = latemonth), Window = "Late") 
+  evi.late <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = latemonth), Window = "Late") 
+  
+  # identify [X Y] average correlation values with product per range of lags
+  # contingent on Run.Lag status 
+   
+  if (Run.Lag){
+    lagval <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, CorrThreshold = 0, Month = earlymonth, Lags=TRUE))
+    lag.df[site,] <- lagval[,"correlation"]
+  }
+
+  
   
   # now subset to the years of interest and identify which years agree with ARC worst
   # early.worst / late.worst produce worst years, while *.ranks give total ranks vectors
@@ -548,39 +639,71 @@ for (site in rownames(site.data)){
     evi.early <- evi.early[is.element(evi.early$Year,years),]
     evi.late  <- evi.late[is.element(evi.late$Year,years),]
   
-    Fn <- ecdf(evi.early$correlation) # since under the function, IRIDL generates "correlation" 
-    early.ranks <- round(Fn(evi.early$correlation),digits = 2)
-    early.worst <- evi.early$Year[which(early.ranks <= badyear.thres)]
   
-    Fn <- ecdf(evi.late$correlation) # since under the function, IRIDL generates "flag" 
-    late.ranks <- round(Fn(evi.late$correlation),digits = 2)
-    late.worst <- evi.late$Year[which(late.ranks <= badyear.thres)]
-    
+  # return the worst years according to badyear.thres value 
+    early.worst <- find.worst(evi.early)
+    late.worst <- find.worst(evi.late)
+   
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " early window years for the [", years[1], ",", years[length(years)], "]", " period are ", early.worst[1], ",", early.worst[2]))
   
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " late window years for the [", years[1], ",", years[length(years)], "]", " period are ", late.worst[1], ",", late.worst[2])) 
   
   # PSEUDO - now run an agree function to find out what percent of years are matching     
   
-    # looking at arc.years.early and arc.years.late 
   
-  arc.early <- as.numeric(arc.years.early)
-  arc.late <- as.numeric(arc.years.late)
+
+  # references the two worst years from imported CSV 
+      arc.early <- arc.worst.years[site,c("Early","Early.1")]
+      arc.late <- arc.worst.years[site,c("Late","Late.1")]
   
-    agree.early[site,"Agreement"] <- length(intersect(arc.early,early.worst)) / max(length(arc.years.early), length(early.worst))
+    agree.early[site,c("Agreement", "Year1", "Year2")] <- c(length(intersect(arc.early,early.worst)) / max(length(arc.years.early), length(early.worst)), early.worst)
   
-  agree.late[site,"Agreement"] <- length(intersect(arc.late,late.worst)) / max(length(arc.years.late), length(late.worst))
+  agree.late[site,c("Agreement","Year1","Year2")] <- c(length(intersect(arc.late,late.worst)) / max(length(arc.years.late), length(late.worst)), late.worst)
   } # end of spatial correlation for loop across sites 
 
 #PSEUDO - want to compare these results against the baseline to identify any performance improvements 
 
 #PSEUDO - insert visualization function here, when it's working 
-arc.evi <- rbind(cbind(agree.early, Window = "Early"), cbind(agree.late, Window = "Late"))
+
+  # dataframe that includes essential info for gg functions and for csv export
+    # prevent duplication of rownames in final arc.evi matrix 
+    agree.early <- data.frame(agree.early, site = rownames(agree.early), Window = "Early", Corr_Thres = corr.value)
+    rownames(agree.early) <- NULL
+    agree.late <- data.frame(agree.late, site = rownames(agree.late), Window = "Late", Corr_Thres = corr.value)
+    rownames(agree.late) <- NULL
+    arc.evi <- rbind(agree.early, agree.late)
+
 
   # plot title 
     ti <- paste0("ARC-EVI Agreement for Pixels with R > ", corr.value)
   # plot filename  
-    fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.pdf")
+    fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.")
 
-  ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = arc.evi) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
-  ggsave(file = fn, scale = 1.5)
+
+  # may need to re-run this code to ensure it generates plot properly  
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = arc.evi) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
+    ggsave(file = paste0(fn,"pdf"), scale = 1.5)
+  
+    write.csv(arc.evi,paste0(fn,"csv"))
+  
+
+  if (Run.Lag){
+    # write lagged correlation averages to file
+    lag.df <- cbind(lag.df, site.data[,c("Latitude","Longitude")], site = rownames(site.data))
+    fn <- paste0(out.path,"LagCorrAvg_",lag.start,"_",lag.end,".csv")
+    write.csv(lag.df, fn)
+    
+    # some gg work on the lagged correlation values 
+    
+    lag.melt <- df.melt(lag.df) 
+    lag.melt$value <- as.numeric(lag.melt$value)
+    # PSEUDO  # remove "Lag" from variable names ?? 
+    
+    ggmap(outmap) + geom_point(aes(x = Longitude, y = Latitude, color = value), data = lag.melt) + scale_color_gradient(low = "black", high = "red") + facet_wrap(~ variable, nrow = 1) + labs(title = "[X Y] Averaged Lagged EVI-ARC2 Correlation Values")
+    
+    ggsave(file = paste0(out.path,"AvgLagCorr_",corr.value,"_.pdf"))
+  } # end if Run.Lag loop 
+
+
+    # PSEUDOCODE - insert code to analyze combination of different correlation values here 
+  

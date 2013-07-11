@@ -1,0 +1,69 @@
+5.2. Vegetation
+===
+
+One component of contract validation process is the comparison of vegetation index values against rainfall estimates to quantify agreement frequency regarding which years have had the worst growing conditions.  Perfect correlation cannot be expected since crop response to a given level of rainfall is not uniform, and water availability for crops depends on additional factors such as topography and soil type.  While the primacy of rainfall estimates in contract design helps avoid some of the complexities entailed by crop and hydrological models, vegetation proxies can still be useful in validating results based on rain gauge and/or rainfall estimate data.  Such proxies, primarily in the form of vegetation indices (VIs), serve a particularly significant role in locations where rain gauges are not present to validate satellite observations. Care must be taken to ensure data validity, such as ground-truthing measurements to confirm satellite readings.   Furthermore, improved skill with VI data may eventually support the offer of hybrid contracts, indexing on both rainfall and VI levels, should such contracts provide a basis risk reduction.  To assess the feasibility of such a direction requires greater understanding of the relationship between VI data and rainfall estimates, as explored in several ways in this report.  
+
+Accordingly, the following subsections build upon earlier analyses conducted by the IRI.  Such analyses have addressed the degree to which several VI products identify the same worst years (those below a specified percentile level [this seems easier to explain than using a CDF approach) as ARC2 rainfall estimates.  Performance of a single product varies widely across sites - some agree 100%, others agree 0% - and below is a spatial representation to better   [
+
+While the vegetation phenology will trend behind precipitation changes,  since it appears that a 1-month lag best reflects the relationship between rainfall estimates and vegetation index values.  This was an insight from previous work, well represented in the following graphic:  The pattern of lagged correlation values is consistent across all sites: a rise from 0-month which peaks at a 1-month lag, decreasing in lagged months 2 and 3.  Therefore focusing on the correlation-maximizing lag will improve our chances of being able to use it in an index setting.  FOOTNOTE: since we are comparing two different units, cannot use a mean squared error approach to discern bias, as when comparing two precipitation products.  Correlation therefore is the most useful base measure of claiming that averaged phenological changes trail precipitation patterns by approximately one month.  
+           
+< INSERT AvgLagCorr*.PDF HERE>            
+
+         
+Which output forms the benchmark against which revised versions are compared.           
+
+
+REVIEW of earlier materials - incorporating some of those details.   
+
+
+
+  For our purposes, we are interested in determining the extent to which vegetation products can corroborate in identifying the worst years.  In areas with strong agreement between vegetation data and rainfall data, our confidence in the contracts paying out in the worst seasons is strengthened.  
+
+
+
+Several variables and relationships to consider - most importantly, which vegetation index to focus on, the temporal relationship between a vegetation signal and rainfall estimates, which pixels we are collecting data from, 
+
+Earlier analysis has investigated the role of modifying the time lag for vegetation indices to identify if correlation values - this study therefore has not continued further in this direction 
+
+
+
+Reason to average over time - similar to motivation for averaging over space.  
+
+- We’ve also seen in earlier studies that the Enhanced Vegetation Index (EVI) has performed better in terms of agreement with rainfall estimate payout years, hence for this report we have maintained a single focus on EVI - To recall, EVI is computed from an equation that incorporates reflectance values from the near-infrared, red, and blue spectral bands, and parameter values corresponding to atmospheric aerosol concentration.  
+
+
+
+If we place those rankings on a map, we can see (not see) spatial coherence in the patterns.  
+
+
+
+VI Scaling Size
+=== 
+
+The technique previously used to determine the agreement frequency has relied on averaging all the MODIS/SPOT pixels that an individual ARC2 (10km x 10km resolution) would project onto.  This has been a straightforward approach since it seems sensible to average out across all space that coincides with an ARC2 pixel's coverage.  
+
+  
+ 
+We have constructed a tool which enables users to specify 
+
+
+Focus on changing the aggregate box size - scaling up.  In the process of scaling up, additional noise is introduced by incorporating spectral information from non-vegetation objects.  In locations where farms on average occupy several hundred hectares, this might not be a problem, but since the land holdings for Ethiopia are significantly smaller, we will encounter this issue of ‘spectral mixing.’   
+
+Oftentimes we can decrease errors in VI values by averaging over a larger area.  This is because what the satellite detects for a given location is not a perfect representation of the on-the-ground reality there, hence our use of the term ‘estimates’ when discussing the data coming from these satellites.  [Better description of this phenomenon]  Pixels with similar vegetation contents will bear a close resemblance to one another, leading to high correlation values.  Therefore if we focus on only the pixels that are closely correlated and exclude those that are not, we may potentially increase the matching between VI and rainfall estimates in identifying the worst years, those which would trigger insurance payouts.   
+  
+  
+  
+Spatial Correlation with Rainfall
+=== 
+
+We might be interested in seeing the areal coverage where VI results track the patterns of satellite rainfall estimates.  Since the VI pixels are substantially smaller than the rainfall pixel, we can determine where within the 10 x 10 ARC pixel, locations do not appear to demonstrate a significant correlation with rainfall patterns.  This analysis therefore only includes those pixels which show a stronger signal .  We can then compare the agreement outcomes against our benchmark model which implicitly features a correlation threshold value of 0, as it includes all pixels within the ARC2 bounding box.   
+
+
+VI Spatial Correlation with Threshold 
+=== 
+
+- Using similar approach but with only the VI data  
+
+
+When the correlation threshold is lowered to XX, we observe that the agreement XXXX.  
+
