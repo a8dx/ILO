@@ -38,6 +38,13 @@
 
 
 # =========================  Edit History  ===================================== 
+# 7/17(ALD) - changed default ggsave output to .png: scope for setting default
+#             file type globally (to consider)
+#             Moved sitetable to repo since sites will be removed and this 
+#             gives us the opportunity to track which ones. 
+# 7/16(ALD) - improved masking function in evi.corr.regrid, continued coding 
+#             scaling portion of script, have to write out sc.agree to graph
+#             and .csv.  
 # 7/11(ALD) - fixed url problems in evi.corr.regrid - now have flexibility of 
 #             calling function using a Lags argument to produce the lag.df obj.
 # 7/10(ALD) - added a 'total.worst.years' with output csv in lieu of modifying
@@ -120,12 +127,17 @@
 # ---- Read in Precipitation Data -----
 
   # range of years covered in analysis, specified in Phase One report 
-    years <- as.character(seq(2000,2011))  
+    years <- as.character(seq(2001,2012))  
   
   # choose the scenario to work with (draws upon existing file/folder structure)
-    base.path <- "~/Documents/Index_Insurance/sniidharita_fist/WIIET_Data/Dry2012satellite/"
+  #  base.path <- "~/Documents/Index_Insurance/sniidharita_fist/WIIET_Data/Dry2012satellite/"
+    base.path <- "~/Documents/Index_Insurance/sniidharita_fist/WIIET_Data/Dry2012fullassessment/"
+
+
   # read in sitetable and common dekad files 
-    site.data <- read.csv(paste0(base.path,"common.data/sitetable.csv"), header = TRUE, row.names = 1)
+  #  site.data <- read.csv(paste0(base.path,"common.data/sitetable.csv"), header = TRUE, row.names = 1)
+    site.data <- read.csv("sitetable.csv", header = TRUE, row.names = 1)
+
     dekad.cal <- read.csv(paste0(base.path,"common.data/CalendarYearDayDecad.csv"), header = F, skip = 2, row.names = 1)
     dekadmonth <- read.csv(paste0(base.path, "common.data/dekadmonth.csv"))
   
@@ -178,6 +190,13 @@
     colheads <- as.vector(t(outer(phases,1:length(years), FUN = "paste0")))
     total.worst.years <- matrix(data = NA, ncol = total.event.years, nrow = length(rownames(site.data)), dimnames = list(rownames(site.data),colheads))
 
+  # create matrix to hold rainfall by phase for each site year
+    rbf <- matrix(data = NA, ncol = length(phases), nrow = dim(site.data)[1]*length(years))
+    colnames(rbf) <- phases
+    rownames(rbf) <- as.vector(t(outer(rownames(site.data),years, FUN = "paste0")))
+
+
+
 
   # begin comparison process on a site-by-site basis 
     for (site in rownames(site.data)){
@@ -206,38 +225,42 @@
       
       # define sowing windows to calculate ARC rainfall by using dekad calendar 
       # days given for comparison against earlier reports 
-       
-       # following variables are defined on sitetable values, not individual contracts
-      #  early.start <- min(which(dekad.cal == site.data[site,"EarlyFirst"]))
-      #  early.end   <- max(which(dekad.cal == site.data[site,"EarlyLast"])) 
-      #  late.start  <- min(which(dekad.cal == site.data[site,"LateFirst"]))
-      #  late.end    <- max(which(dekad.cal == site.data[site,"LateLast"]))
-       
-      # these variables defined based on site contracts, following format of sniiddemo code
+    
        
       # read in window data from site-specific contract 
        
       contract <- paste0(base.path, scen, site, "/payout.data/contract.R") 
       source(contract)
        
-      early.start <- min(which(dekad.cal == (t$phases[1,1]+t$swfirst-1)))
-      early.end <- max(which(dekad.cal == (t$phases[2,1]+t$swfirst-1)))
-      late.start <- min(which(dekad.cal == (t$phases[1,3]+t$swfirst-1)))
-      late.end <-  max(which(dekad.cal == (t$phases[2,3]+t$swfirst-1)))
        
-      # give the actual MMM-DD days for comparison purposes  
-       early.dates <- c(rownames(dekad.cal)[early.start], rownames(dekad.cal)[early.end])
-        late.dates  <- c(rownames(dekad.cal)[late.start], rownames(dekad.cal)[late.end])
-        
-      # read ARC precip file in day-year format
-        arc <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
-        colnames(arc) <- substr(colnames(arc),2,5)   # remove X from character string preceding colnames
-      
-      # create subset of only arc data over years in "years", take sum over window timings 
-        arc.sub   <- arc[,years]
-        earlies   <- colSums(arc.sub[early.start:(early.end),])
-        lates     <- colSums(arc.sub[late.start:(late.end),]) 
-      
+       # read ARC precip file in day-year format
+       arc <- read.csv(paste0(base.path,scen,site,"/met.data/precip.daily.csv"), header = T, row.names = 1)
+       colnames(arc) <- substr(colnames(arc),2,5)   # remove X from character string preceding colnames
+       
+       # create subset of only arc data over years in "years", take sum over window timings 
+       arc.sub   <- arc[,years]
+       
+    # identify the dekadal range for the windows    
+      e.dek.range <-  (t$phases[1,1]+t$swfirst-1):(t$phases[2,1]+t$swfirst-1)
+      l.dek.range <- (t$phases[1,3]+t$swfirst-1):(t$phases[2,3]+t$swfirst-1)
+       
+      # calculate dekadal rainfall, take min value against contract cap 
+      # early window  
+       earlies <- 0 
+       for (i in e.dek.range){
+         earlies <- earlies + pmin(colSums(arc.sub[which(dekad.cal == i),]), t$cap)
+       }
+       
+      # repeat for late window  
+       lates <- 0 
+       for (j in l.dek.range){
+         lates <- lates + pmin(colSums(arc.sub[which(dekad.cal == j),]), t$cap)
+       }
+       
+      # write to our rbf matrix
+        rbf[paste0(site,years),phases[1]] <- earlies
+        rbf[paste0(site,years),phases[2]] <- lates
+       
       # identify which years satisfy the quantile requirement, NA as a flag if  
         arc.years.early <- colnames(arc.sub)[which(earlies <= quantile(earlies, probs = badyear.thres))]
       # raise flag by creating a dupe version with complete data
@@ -290,6 +313,9 @@
        
   } # end of across sites loop 
 
+
+  # write ARC2 rbf values for comparison against sniid results
+    write.csv(rbf, paste0(out.path, "ARC2_rbf",years[1], "-", years[length(years)], ".csv"))
 
   # write total worst ARC windows (NA's for shorter strings)
     write.csv(total.worst.years, paste0(out.path, "ARC_total_worst", years[1], "-", years[length(years)],".csv"))
@@ -363,17 +389,17 @@ if (identical(rownames(site.data), rownames(vi.mat))){
 
   # maps of site labels, saved to output folder 
     ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(s.sites)), data = s.sites, size = 3) + labs(title = "Ethiopia Harita Sites (S)")
-    ggsave(filename = paste0(out.path,"EthSouthSitesMap.pdf"))
+    ggsave(filename = paste0(out.path,"EthSouthSitesMap.png"))
 
     ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(n.sites)), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Sites (N)")
-    ggsave(filename = paste0(out.path,"EthNorthSitesMap.pdf"))
+    ggsave(filename = paste0(out.path,"EthNorthSitesMap.png"))
 
   # maps of woreda labels, saved to output folder 
     ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = s.sites, alpha = 1.0, size = 5) + labs(title = "Ethiopia Harita Woredas (S)")
-    ggsave(filename = paste0(out.path,"EthSouthWoredasMap.pdf"))
+    ggsave(filename = paste0(out.path,"EthSouthWoredasMap.png"))
 
     ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Woredas (N)")
-    ggsave(filename = paste0(out.path,"EthNorthWoredasMap.pdf"))
+    ggsave(filename = paste0(out.path,"EthNorthWoredasMap.png"))
 
 
 
@@ -417,12 +443,12 @@ eth.coords <- make.coords(arc.early, b.s)
 
   # generate early window ARC rankings, can modify number of rows output appears in  
     ggmap(outmap) + geom_point(aes(x= Longitude, y = Latitude, color = Ranking), data = a_e) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Early Window Rankings")
-    ggsave(file = paste0(out.path, "ARCearlyranks.pdf"), scale = 1.5)
+    ggsave(file = paste0(out.path, "ARCearlyranks.png"), scale = 1.5)
 
   # generate late ARC ranks 
   # wrap in print() to display plot on-screen  
     ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Ranking), data = a_l) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Late Window Rankings")
-    ggsave(file = paste0(out.path,"ARClateranks.pdf"), scale = 1.5)
+    ggsave(file = paste0(out.path,"ARClateranks.png"), scale = 1.5)
     
 
 #Comparing worst years of ARC2 against select VI products.  Results should 
@@ -449,7 +475,7 @@ eth.coords <- make.coords(arc.early, b.s)
   # ARC-VI Agreement on Worst Years
     # this can serve as the benchmark against which other versions can be compared to evaluate any performance gains from regridding, spatial correlation, etc.  
     ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2)      + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1 )      + labs(title = "ARC-VI Worst Year Agreement %")
-    ggsave(file = paste0(out.path, "ARCEVIagree.pdf"), scale = 1.5)
+    ggsave(file = paste0(out.path, "ARCEVIagree.png"), scale = 1.5)
 
 
 
@@ -466,6 +492,10 @@ eth.coords <- make.coords(arc.early, b.s)
 #print(ggmap(Eth, base_layer = ggplot(aes(x=Longitude, y=Latitude), data = gg.arc.early)) + geom_point(aes(color = Ranking)) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable))  
 
 
+
+
+
+
 # ======================= VI Grid Size Scaling ================================= 
 #
 # An alternative to comparing VI results scaled at the same pixel size as ARC2 
@@ -480,11 +510,18 @@ eth.coords <- make.coords(arc.early, b.s)
 #
 # How many km wide do you want the aggregate gridding box?  [0 < x <= 10 km]
 #
-  #  diameter.range <- 5  
-    diameter.range <- 1:5
-    range.number <- 10    # do i want this?  number of values to be computed across the diameter
+    range.number <- 8    # do i want this?  number of values to be computed across the diameter
+    pt.num <- 5  # number of points for comparison?  
 #
+# Specify years of interest - uncomment 1st to reuse years from beginning of analysis
+# preferable to ensure that badyear.thres * length(years) > 2 
+        years <- years   
+      #  years <- as.character(seq(2002,2012))  
+
+
 #==============================================================================#
+
+
 
   # default pixel size in degrees, from IRI-DL
     MODIS.pixel.size  <-  0.00221704 
@@ -494,12 +531,99 @@ eth.coords <- make.coords(arc.early, b.s)
                       # if we decide to make adjustments to account for 
                       # shrinking pixel sizes when moving towards poles 
 
-    diameter.range <- diameter.range / long.eq  # returns input argument in deg
-  
+    di.range <- seq(0,range.number, length.out = pt.num)/(2*long.eq)  # returns input argument in deg
+    di.range <- di.range[-1]  # ignores 0 distance value 
+    
+  # clearing values for input parameters used in the spatial correlation section  
+    lag.start <- 0 
+    lag.end <- 0   
+
+  # read in worst arc years from earlier analysis
+    arc.worst.years <- read.csv(paste0(out.path, "ARC_worst_years", years[1], "-", years[length(years)],".csv"), header = TRUE, row.names = 1)
+
+
+
+  # create template df from which early/late windows will be drawn - worst years are stored here as we move through the loop 
+
+
+    z.cols <- as.vector(t(outer(phases, di.range, FUN = "paste0")))
+    y.cols <- c("Latitude", "Longitude", "Agreement", "Year1", "Year2")
+
+    sc.agree <- array(data = NA, dim = c(dim(site.data)[1], length(y.cols), length(z.cols)), dimnames = list(rownames(site.data), y.cols, z.cols))
+
+  # populate lat/lon values across z index 
+      sc.agree[,c("Latitude","Longitude"),] <- as.matrix(site.data[,c("Latitude","Longitude")])
+
 
 for (site in rownames(site.data)){
   
+    print(site)
   
+    contract.pth<-paste0(base.path,scen,site,"/payout.data/contract.R")
+    source(contract.pth)
+  
+    midearly<-as.integer(t$swfirst+(t$phases[2,1]+t$phases[1,1])/2)
+    midlate<-as.integer(t$swfirst+(t$phases[2,3]+t$phases[1,3])/2)
+  
+  # 4 dekads later was the [adjustable] standard delay in sniidharita  
+  # delay already inherent in IRI Data Library code in evi.corr.regrid since using
+  # shiftdatashort with a 1 month lag 
+    dekdelay <- 4 
+    earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
+    latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
+  
+  
+  for (di.val in di.range){
+    
+    scale.early <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.range[2], CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = earlymonth)
+    scale.late <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.val, CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = latemonth)   
+    
+  
+    # FOLLOWING PROCEDURES SHOULD BE PUT INTO FUNCTION 
+    
+    # now subset to the years of interest and identify which years agree with ARC worst
+    # early.worst / late.worst produce worst years, while *.ranks give total ranks vectors
+    scale.early <- data.frame(scale.early, Month = substr(scale.early$Time,1,3)[1], Year = as.numeric(substr(scale.early$Time, 5, 8)))
+    scale.late  <- data.frame(scale.late,  Month = substr(scale.late$Time,1,3)[1], Year = as.numeric(substr(scale.late$Time, 5, 8)))
+    
+    # drop the original "Time" column 
+    scale.early <- subset(scale.early, select = -Time)
+    # evi.late  <- subset(evi.late, Year == years, select = -Time)
+    scale.late  <- subset(scale.late, select = -Time)
+    
+    
+    # PSEUDO - create code to ensure that all years are providing data for the same month
+    
+    # subset to appropriate years window 
+    
+    
+    scale.early <- scale.early[is.element(scale.early$Year,years),]
+    scale.late  <- scale.late[is.element(scale.late$Year,years),]
+    
+    # return the worst years according to badyear.thres value 
+    # raise exception and continue script if NAs appear
+    sc.early.worst <- try(find.worst(scale.early,"aprod"), TRUE)
+    sc.late.worst <- try(find.worst(scale.late,"aprod"), TRUE)
+  
+    if (inherits(try(find.worst(scale.early,"aprod"), TRUE), "try-error")){
+      sc.early.worst <- rep(NA, badyear.thres*length(years))
+    }
+    
+    if (inherits(try(find.worst(scale.late,"aprod"), TRUE), "try-error")){
+      sc.late.worst <- rep(NA, badyear.thres*length(years))
+    }
+    
+    
+    # references the two worst years from imported CSV 
+    arc.site.early <- arc.worst.years[site,c("Early","Early.1")]
+    arc.site.late <- arc.worst.years[site,c("Late","Late.1")]
+    
+    sc.agree[site,c("Agreement", "Year1", "Year2"),paste0("Early",di.val)] <- c(length(intersect(arc.site.early,sc.early.worst)) / max(length(arc.site.early), length(sc.early.worst)), sc.early.worst)
+    
+    sc.agree[site,c("Agreement", "Year1", "Year2"),paste0("Late",di.val)] <- c(length(intersect(arc.site.late,sc.late.worst)) / max(length(arc.site.late), length(sc.late.worst)), sc.late.worst)
+      
+    
+  }
 }
 
 
@@ -531,7 +655,7 @@ for (site in rownames(site.data)){
   # step lags by 1 month each 
 
   # Do you also want to run an analysis on lagged correlation coefficients?  
-        Run.Lag <- FALSE 
+        Run.Lag <- TRUE
         lag.start <- -1
         lag.end <- 3
 
@@ -641,9 +765,12 @@ for (site in rownames(site.data)){
   
   
   # return the worst years according to badyear.thres value 
-    early.worst <- find.worst(evi.early)
-    late.worst <- find.worst(evi.late)
+    early.worst <- find.worst(evi.early,"aprod")
+    late.worst <- find.worst(evi.late,"aprod")
    
+  
+  
+  
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " early window years for the [", years[1], ",", years[length(years)], "]", " period are ", early.worst[1], ",", early.worst[2]))
   
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " late window years for the [", years[1], ",", years[length(years)], "]", " period are ", late.worst[1], ",", late.worst[2])) 
@@ -682,10 +809,12 @@ for (site in rownames(site.data)){
 
   # may need to re-run this code to ensure it generates plot properly  
     ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = arc.evi) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
-    ggsave(file = paste0(fn,"pdf"), scale = 1.5)
+    ggsave(file = paste0(fn,"png"), scale = 1.5)
   
     write.csv(arc.evi,paste0(fn,"csv"))
   
+
+
 
   if (Run.Lag){
     # write lagged correlation averages to file
@@ -701,7 +830,7 @@ for (site in rownames(site.data)){
     
     ggmap(outmap) + geom_point(aes(x = Longitude, y = Latitude, color = value), data = lag.melt) + scale_color_gradient(low = "black", high = "red") + facet_wrap(~ variable, nrow = 1) + labs(title = "[X Y] Averaged Lagged EVI-ARC2 Correlation Values")
     
-    ggsave(file = paste0(out.path,"AvgLagCorr_",corr.value,"_.pdf"))
+    ggsave(file = paste0(out.path,"AvgLagCorr_",corr.value,"_.png"))
   } # end if Run.Lag loop 
 
 
