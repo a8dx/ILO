@@ -4,6 +4,12 @@
 # Last Edit:  July 1, 2013 
 
 
+
+# EDIT HISTORY
+#
+# July 15 (ALD) - modified URL in evi.corr.regrid to better reflect the calculation
+#                 of masked EVI values.  
+
 library(gtools)
 
 vi.common <- function(product = c("EVI")){
@@ -152,18 +158,16 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lag
       ad5 <- paste0("X/",Lon-Size,"/", Lon+Size, "/RANGEEDGES/")
       ad6 <- paste0("Y/", Lat-Size, "/", Lat+Size, "/RANGEEDGES/")
       ad7 <- paste0("X/", RegridSize, "/", "0.9/boxAverage/Y/", RegridSize, "/", "0.9/boxAverage/")
-      ad8 <- "T/1.0/monthlyAverage/"
-      ad9 <- paste0("T/1/1/1/shiftdatashort")
-      ad10 <- "/[T]/correlate/"
-      ad11 <- paste0(CorrThreshold, "/maskle") 
-      ad12 <- ad4
-      ad13 <- ad5
-      ad14 <- ad6
-      ad15 <- ad7
-      ad16 <- ad8
-      ad17 <- "mul/[X/Y]average/"
-      ad18 <- paste0("T/(",Month, ")RANGE/")
-      ad19 <- "T+exch+table-+text+text+-table++.csv"
+      ad8 <- "T/0.9/monthlyAverage/"
+      ad9 <- "dup/"   # have to duplicate before taking the lag 
+      ad10 <- paste0("T/1/1/1/shiftdatashort")  # stock lag value 
+      ad11 <- "/3/-1/roll"
+      ad12 <- "/[T]/correlate/"
+      ad13 <- paste0(CorrThreshold, "/maskle/") 
+      ad14 <- "dataflag/0/maskle/mul/"
+      ad15 <- "[X/Y]average/"
+      ad16 <- paste0("T/(",Month, ")RANGE/")
+      ad17 <- "T+exch+table-+text+text+-table++.csv"
       
       # need to ensure get function calls variables from proper environment
   myfunc <- function(x){
@@ -173,24 +177,28 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lag
   # modifying url to reflect capture only of correlation values 
   if (Lags == TRUE){
     ad7 <- ""
-    ad15 <- ""
     ad9 <- lagval
+    ad10 <- "" 
     ad11 <- ""
-    ad12 <- ""
+    ad12 <- ad12
     ad13 <- ""
     ad14 <- ""
-    ad15 <- ""
+    ad15 <- ad15
     ad16 <- ""
-    ad17 <- "[X/Y]average/"
-    ad18 <- ""
-    ad19 <- "T_lag+exch+table-+text+text+-table++.csv"}
+    ad17 <- "T_lag+exch+table-+text+text+-table++.csv"
+}
+  
+  
+  
+  # lag URL will look something like this: "http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DAILY/.ARC2/.daily/.est_prcp/X/38.726/VALUE/Y/7.845/VALUE/X/removeGRID/Y/removeGRID/T/1.0/monthlyAverage/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.526/38.926/RANGEEDGES/Y/7.645/8.045/RANGEEDGES/T/1.0/monthlyAverage/T/0/1/0/shiftdatashort/[T]/correlate/[X/Y]average/  T_lag"
+  
   
   # pieces together segments to generate a unified, usable URL 
-    vec <- paste0("ad",1:19) 
+    vec <- paste0("ad",1:17) 
     url.name <- capture.output(cat(unlist(lapply(vec,myfunc)), sep = "", collapse = ""))
 
   # specify output .csv filename and location
-    fout <- paste0(out.path,"/evicorr_temp.csv")
+    fout <- paste0(out.path,"evicorr_temp.csv")
       download.file(url.name, fout)
       return(read.csv(fout, header = T))
   } # end evi.corr.regrid function 
@@ -254,11 +262,49 @@ arc.vi.vis <- function(x.df){
           
 } # end arc.vi.vis 
 
-find.worst <- function(obj){
+find.worst <- function(obj,colname){
   # Returns the years of an obj with column "Year" falling below passed in 'badyear.thres' value
-  # Requires obj to also have "correlation" column 
+ # # Requires obj to also have "correlation" column 
   # Could generalize and include an input parameter corresponding to column to be ranked
-  Fn <- ecdf(obj$correlation) 
-  ranks <- Fn(obj$correlation)
+  Fn <- ecdf(obj[,colname]) 
+  ranks <- Fn(obj[,colname])
   return(obj$Year[which(ranks <= badyear.thres)])
 }
+
+
+bench.corr.compare <- function(corr.value){
+    # corr.value corresponds to an earlier run which denotes a unique .csv file
+    # with output from the ARC-VI spatial correlation section of the ILO report
+    # script 
+  
+  df.both <- read.csv(paste0(out.path,"VIspatialcorrelation_",corr.value,"_.csv"), header = T)
+  df.early <- df.both[which(df.both[,"Window"] == "Early"),]      
+  df.late <- df.both[which(df.both[,"Window"] == "Late"),]
+  
+  if (identical(df.early[,"site"],benchmark.early[,"site"])){
+    print("Sites match, Early comparison success!")
+    out.early <- data.frame(df.early, fin = (df.early[,"Agreement"]-benchmark.early[,"value"]))
+  }else{print("Mismatch in site list - early window comparison failed")}
+ 
+      
+    if (identical(df.late[,"site"],benchmark.late[,"site"])){print("Sites match, Late comparison success!")
+        out.late <- data.frame(df.late, fin = (df.late[,"Agreement"]-benchmark.late[,"value"] ))
+    }else{print("Mismatch in site list - late window comparison failed")}
+
+  
+        out <- rbind(out.early,out.late)
+      # use common naming system for different outputs   
+        fn <- paste0(out.path,"CorrThreshPerfDiff_",corr.value,"_.")
+        
+        ti.c <- paste0("Agreement Performance Gain [ ", corr.value, "Correlation Threshold - Benchmark]")
+    # save as .png and .csv
+        ggmap(outmap) + geom_point(aes(x = Longitude, y = Latitude, color = fin), data = out) + scale_color_gradient(low = "red", high = "green") + labs(title = ti.c)
+        ggsave(file = paste0(fn,"png"))
+        write.csv(out,paste0(fn,"csv"))
+        return(out)
+  }  # end of bench.corr.compare function 
+
+# read.csv
+# subtract from benchmark, both early and late
+# save output in ggmap format as well as .csv
+

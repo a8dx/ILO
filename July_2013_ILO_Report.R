@@ -38,15 +38,26 @@
 
 
 # =========================  Edit History  ===================================== 
-# 7/17(ALD) - changed default ggsave output to .png: scope for setting default
+# 7/17(ALD) 
+#         *   Changed default ggsave output to .png: scope for setting default
 #             file type globally (to consider)
-#             Moved sitetable to repo since sites will be removed and this 
+#         *   Moved sitetable to repo since sites will be removed and this 
 #             gives us the opportunity to track which ones. 
-# 7/16(ALD) - improved masking function in evi.corr.regrid, continued coding 
+#         *   Golba, Haleku removed from analysis 
+#         *   Kihen removed because of evi.corr.regrid 
+#         *   Commenting out functions on "southern sites" since they have been
+#             removed from the analysis.  
+#         *   Fixed URL for lagged correlations - need to include month component
+#         *   Should restructure bench.corr.compare to sub-function based 
+#
+# 7/16(ALD) 
+#         *   Improved masking function in evi.corr.regrid, continued coding 
 #             scaling portion of script, have to write out sc.agree to graph
 #             and .csv.  
+#
 # 7/11(ALD) - fixed url problems in evi.corr.regrid - now have flexibility of 
 #             calling function using a Lags argument to produce the lag.df obj.
+#
 # 7/10(ALD) - added a 'total.worst.years' with output csv in lieu of modifying
 #             the arc.worst matrix - this gives total years that are below 
 #             threshold and therefore sites to focus on for potential contract
@@ -57,12 +68,16 @@
 #
 #             Created lag.df to capture lag correlation values - could make for 
 #             a nice accessory plot 
+#
 # 7/9(ALD)  - added both woreda and site-level map plots so that in write-up
-#             we can refer to specific areas when making comments about results        
+#             we can refer to specific areas when making comments about results 
+#
 # 7/3(ALD)  - further documentation work, some pseudo-coding for necessary work
 #             problems accessing ggplot2 functions inside function, requires 
 #             some repetition of procedures - need to discuss with Helen 
+#
 # 7/2(ALD)  - improved plotting using ggmap, streamlined documentation 
+#
 # 7/1(ALD)  - created evi.corr.regrid function in vi_functions.R, 
 
 # ******************************************************************************
@@ -147,6 +162,12 @@
     rbf.fn <- "/EthRFEadj/rainbyphase.csv"
 
  
+  # Peform replication analysis of 2012 ILO Report? (Default is TRUE)
+    repl <- FALSE  
+  # PSEUDO - have not incorporate this into a larger if loop, though need to fig
+  # which variables would be needed for later in the analysis 
+
+
 # PSEUDO - 'phase' is passed to vi.common (in vi_functions), yet we are really 
 # interested in assessing all phases.  Here I take the short-cut of focusing 
 # on a single phase since this is about reproducing an earlier report, not
@@ -376,27 +397,27 @@ if (identical(rownames(site.data), rownames(vi.mat))){
   # create map scenes that have site label text atop map layer, split into N and S 
   # first divide into two scenes, since much of the land in the larger bounding box 
   # does not include any sites 
-    s.sites <- subset(site.data, Latitude < 9, select = c(Latitude, Longitude, Woreda))
+  #  s.sites <- subset(site.data, Latitude < 9, select = c(Latitude, Longitude, Woreda))
     n.sites <- subset(site.data, Latitude > 12, select = c(Latitude, Longitude, Woreda))
   
   # create bounding box coordinates, specify buffer size, function in vi_functions.R
-    s.coords <- make.coords(s.sites, 0.1)
+ #   s.coords <- make.coords(s.sites, 0.1)
     n.coords <- make.coords(n.sites, 0.1)
 
   # read in cloudmade maps given bounding information from make.coords functions
-    s.map <- get_cloudmademap(bbox = c(left = s.coords$l, bottom = s.coords$b, right = s.coords$r, top = s.coords$t), api_key = cm.key)  
+  #  s.map <- get_cloudmademap(bbox = c(left = s.coords$l, bottom = s.coords$b, right = s.coords$r, top = s.coords$t), api_key = cm.key)  
     n.map <- get_cloudmademap(bbox = c(left = n.coords$l, bottom = n.coords$b, right = n.coords$r, top = n.coords$t), api_key = cm.key)  
 
   # maps of site labels, saved to output folder 
-    ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(s.sites)), data = s.sites, size = 3) + labs(title = "Ethiopia Harita Sites (S)")
-    ggsave(filename = paste0(out.path,"EthSouthSitesMap.png"))
+  #  ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(s.sites)), data = s.sites, size = 3) + labs(title = "Ethiopia Harita Sites (S)")
+  #  ggsave(filename = paste0(out.path,"EthSouthSitesMap.png"))
 
     ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(n.sites)), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Sites (N)")
     ggsave(filename = paste0(out.path,"EthNorthSitesMap.png"))
 
   # maps of woreda labels, saved to output folder 
-    ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = s.sites, alpha = 1.0, size = 5) + labs(title = "Ethiopia Harita Woredas (S)")
-    ggsave(filename = paste0(out.path,"EthSouthWoredasMap.png"))
+  #  ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = s.sites, alpha = 1.0, size = 5) + labs(title = "Ethiopia Harita Woredas (S)")
+ #   ggsave(filename = paste0(out.path,"EthSouthWoredasMap.png"))
 
     ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Woredas (N)")
     ggsave(filename = paste0(out.path,"EthNorthWoredasMap.png"))
@@ -442,12 +463,12 @@ eth.coords <- make.coords(arc.early, b.s)
     outmap <- get_cloudmademap(bbox = c(left = eth.coords$l, bottom = eth.coords$b, right = eth.coords$r, top = eth.coords$t), api_key = cm.key)  
 
   # generate early window ARC rankings, can modify number of rows output appears in  
-    ggmap(outmap) + geom_point(aes(x= Longitude, y = Latitude, color = Ranking), data = a_e) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Early Window Rankings")
+    ggmap(outmap) + geom_point(aes(x= Longitude, y = Latitude, color = Ranking), data = a_e) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 3) + labs(title = "ARC Early Window Rankings")
     ggsave(file = paste0(out.path, "ARCearlyranks.png"), scale = 1.5)
 
   # generate late ARC ranks 
   # wrap in print() to display plot on-screen  
-    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Ranking), data = a_l) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1) + labs(title = "ARC Late Window Rankings")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Ranking), data = a_l) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 3) + labs(title = "ARC Late Window Rankings")
     ggsave(file = paste0(out.path,"ARClateranks.png"), scale = 1.5)
     
 
@@ -474,7 +495,7 @@ eth.coords <- make.coords(arc.early, b.s)
 
   # ARC-VI Agreement on Worst Years
     # this can serve as the benchmark against which other versions can be compared to evaluate any performance gains from regridding, spatial correlation, etc.  
-    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2)      + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 1 )      + labs(title = "ARC-VI Worst Year Agreement %")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = value), data = vi.2)      + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 2 )      + labs(title = "ARC-VI Worst Year Agreement %")
     ggsave(file = paste0(out.path, "ARCEVIagree.png"), scale = 1.5)
 
 
@@ -553,6 +574,10 @@ eth.coords <- make.coords(arc.early, b.s)
 
   # populate lat/lon values across z index 
       sc.agree[,c("Latitude","Longitude"),] <- as.matrix(site.data[,c("Latitude","Longitude")])
+
+
+
+
 
 
 for (site in rownames(site.data)){
@@ -798,7 +823,7 @@ for (site in rownames(site.data)){
     rownames(agree.early) <- NULL
     agree.late <- data.frame(agree.late, site = rownames(agree.late), Window = "Late", Corr_Thres = corr.value)
     rownames(agree.late) <- NULL
-    arc.evi <- rbind(agree.early, agree.late)
+    evi.arc.sc <- rbind(agree.early, agree.late)
 
 
   # plot title 
@@ -808,10 +833,9 @@ for (site in rownames(site.data)){
 
 
   # may need to re-run this code to ensure it generates plot properly  
-    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = arc.evi) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = evi.arc.sc) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
     ggsave(file = paste0(fn,"png"), scale = 1.5)
-  
-    write.csv(arc.evi,paste0(fn,"csv"))
+    write.csv(evi.arc.sc,paste0(fn,"csv"))
   
 
 
@@ -836,3 +860,21 @@ for (site in rownames(site.data)){
 
     # PSEUDOCODE - insert code to analyze combination of different correlation values here 
   
+
+  #######  Comparison Against Benchmark Model #######
+  
+  # set separate df's for early and late windows - easier to conduct comparisons   
+    benchmark.early <- benchmark[which(benchmark[,"variable"] == "EarlyEVI"),] 
+    benchmark.late  <- benchmark[which(benchmark[,"variable"] == "LateEVI"),]
+    
+  # read in the re-scaled grid box data
+    
+  # read in the correlation mask data   
+    # data 0.5 
+
+# HOW TO COMBINE MULTIPLE CORRELATION VALUES INTO A SINGLE OUTPUT?  
+     diff.05 <- bench.corr.compare(0.5)
+    
+    # data 0.7 
+    
+    # data 0.9 
