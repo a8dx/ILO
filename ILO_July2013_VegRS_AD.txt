@@ -1,0 +1,65 @@
+5.2. Vegetation
+===
+
+One component of the contract validation process is comparing vegetation index (VI) values against rainfall estimates to determine the extent to which the two products agree.  Just as the worst seasons according to rainfall estimates are identified by the years which received the lowest cumulative rainfall over a defined time window, the worst years as determined by a VI are those for which the cumulative VI values are lowest.  When both products select the same worst years, their agreement suggests that in fact those years were objectively the worst. In areas with strong agreement between vegetation data and rainfall data, our confidence in the contracts paying out in the worst seasons is strengthened. 
+
+A perfect correlation between the two products cannot be expected; crop response to a  level of rainfall is far from uniform across the range of crops farmers grow, and actual water available for crops rests on additional factors such as topography and soil porosity.  While the primacy of rainfall estimates in contract design helps avoid some of the complexities entailed by crop and hydrological models, vegetation proxies can still be useful in validating results based on rain gauge and/or rainfall estimate data.  Such proxies, primarily in the form of VIs, serve a particularly significant role in locations where rain gauges are not present to validate satellite observations. FOOTNOTE(Care must be taken to ensure data validity, such as ground-truthing measurements to confirm satellite readings.)/ENDFOOTNOTE  Furthermore, improved skill with VI data may eventually support the offer of hybrid contracts, indexing on both rainfall and VI levels, were such contracts proven capable of reducing basis risk.  Still, feasibility assessment of this requires greater understanding of VI data and rainfall estimates' relationship, as explored in various ways in this report.  
+
+Accordingly, the following subsections build upon earlier analyses conducted by the IRI.  Such analyses have addressed the degree to which several VI products identify the same worst years (those below a specified percentile level [this seems easier to explain than using a CDF approach) as ARC2 rainfall estimates.  Performance of a single product varies widely across sites - some agree 100%, others agree 0% - as seen in Figure ArcEVI below.  Agreement rates for the late window are substantially high than for the early window; averaged across the 3 VI products, early window agreement is 28% and late window agreement 56%.  If these values held true for out of sample sites, for example, then in a sample of 50 sites with 100 worst years as determined by rainfall levels recorded in the early window, the VI products would only agree with 28 of those years.  While perfomance across VI data is rather comparable for the early window, EVI clearly beats NDVI and NDWI indices in late window agreement.  This supports earlier analyses suggesting the superiority of the Enhanced Vegetation Index (EVI) as the preferred index for working with vegetation, hence this report continues a VI focus centered on EVI data.  To recall, EVI is computed from an equation that incorporates reflectance values from the near-infrared, red, and blue spectral bands, and parameter values corresponding to atmospheric aerosol concentration.  
+
+< Fig ArcEVI: INSERT ARCEVIagree.png HERE >  
+
+
+
+An additional insight from prior work is that vegetation data lagged one month behind precipitation appears to best replicate dynamics observed in the precipitation timeseries.  While vegetation phenology intuitively trends behind precipitation, the specific temporal lag necessary to appropriately use VI data is not a priori understood. The optimal lag length maximizes the correspondence in changes between the two data products as measured in the correlation coefficient.  FOOTNOTE(Since variables measured in differing units are being analyzed, approaches that compare mean squared errors or bias are infeasible analytical methods, unlike when data from a common climate phenomenon are compared (e.g., two precipitation products)./ENDFOOTNOTE Therefore comparing correlation coefficients between versions of VI data lagged at varying lengths and rainfall can resolve this question.  As Figure XXX demonstrates for EVI and ARC2 precipitation estimates timeseries, the pattern of lagged correlation values is consistent across all sites: positive, but low values for a lag length of zero months, peak correlation values at a 1-month lag, and values decreasing in time for the two and three month lags.  Accordingly, all subsequent analyses incorporating VI data feature versions lagged by one month.     
+
+< INSERT AvgLagCorr*.PDF HERE>  
+.. _laggedcorr-figure: 
+.. figure::laggedcorr
+
+ CAPTION:	Lagged correlation values for select lag lengths  
+									          
+
+
+Furthermore, if data for calculating correlation coefficients is restricted only to the contract windows, the results <LOOK LIKE THIS>.    
+                  
+
+
+Analysis
+=== 
+
+The technique earlier used to determine the agreement frequency between VI and precipitation products relies on averaging all the VI product pixels that an individual ARC2 (10km x 10km resolution) pixel projects onto.  With MODIS pixels sized 250m a side, this results in approximately 1,600 VI pixels used when analyzing an individual site.  This has intuitive appeal, yet incorporates pixels that may have low vegetation abundance and therefore little bearing on the behavior of which years are identified as worst.      
+
+The following are within-sample diagnostic exercises to identify whether alternative methods of incorporating VI data might better correspond with rainfall data.  Their success hinges on producing worst year agreement frequencies with ARC2 data equal to or greater than the "benchmark model" as described above.  The first exercise involves modifying the size of the bounding box of VI pixels compared to an individual ARC2 pixel.  Instead of maintaining the 10km x 10km grid size parity, smaller or larger re-scaled VI data could potentially better smooth out bias and improve correspondence with ARC2 findings.  The second exercise features a larger bounding box - a default value of approximately 90km each side - but masks out VI pixels whose correlation coefficients with the site-specific ARC2 pixel fall below various threshold levels.  Remaining pixel VI data are spatially averaged, with worst year agreement percentages calculated.    
+
+These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computation capabilities implicit in this study.  
+
+
+
+Vegetation Index Pixel-Size Scaling
+===
+
+In the process of up-scaling vegetation data, noise may be amplified by the introduction of non-vegetation spectral reflectance detected by the sensor.  In locations where farms on average occupy several hundred hectares, this poses less a problem, but since the land holdings for Ethiopia are significantly smaller, we will encounter this issue of ‘spectral mixing.’   
+
+Oftentimes we can decrease errors in VI values by averaging over a larger area.  This is because what the satellite detects for a given location is not a perfect representation of the on-the-ground reality there, hence our use of the term ‘estimates’ when discussing the data coming from these satellites.  In fact, for any individual pixel with 8 neighbors, MODIS' processing algorithm includes neighbors' data into that pixel's levels [CITATION FROM MARSHALL].  
+
+< INSERT RESULTS FROM VARYING BOUNDING BOX SIZE HERE >  
+
+  
+  
+VI Spatial Correlation with Threshold 
+=== 
+
+We may be interested in monitoring the areal coverage where VI results track the patterns of satellite rainfall estimates and correlation measures are an obvious metric to assist in this endeavor.  Pixels with similar vegetation contents should bear a close resemblance to one another, leading to high correlation values.  Therefore if we focus on only the pixels that are closely correlated and exclude those that are not, we may potentially increase the matching between VI and rainfall estimates in identifying the worst years which would trigger insurance payouts.  Of course different crops respond to rainfall differently, though broadly speaking changes in precipitation should be reflected in consequent vegetation changes.  We can then compare the agreement outcomes against our benchmark model which implicitly features a correlation threshold value of 0, i.e., including all pixels within the ARC2 bounding box.  
+  
+
+
+< INSERT RESULTS FROM VARYING CORRELATION THRESHOLDS HERE >  
+
+
+
+
+
+
+ 
+

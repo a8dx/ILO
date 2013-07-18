@@ -33,6 +33,10 @@
 #
 # * ARC2[/RFE] rainfall files from sniidharita script
 # 
+# * Sloppy construction of spatial correlation component means currently running
+#   code multiple times using different correlation thresholds, then later
+#   reading the output .csvs to createa master melted file for ggplotting.  This
+#   is something that needs to be improved in the near future. (July 17, 2013)
 # ******************************************************************************
 
 
@@ -668,7 +672,7 @@ for (site in rownames(site.data)){
 #
 
   # Specify the correlation coefficient threshold (r) for masking pixels 
-        corr.value <- 0.5
+        corr.value <- 0.4
 
   # Specify years of interest - uncomment 1st to reuse years from beginning of analysis
   # preferable to ensure that badyear.thres * length(years) > 2 
@@ -680,7 +684,7 @@ for (site in rownames(site.data)){
   # step lags by 1 month each 
 
   # Do you also want to run an analysis on lagged correlation coefficients?  
-        Run.Lag <- TRUE
+        Run.Lag <- FALSE
         lag.start <- -1
         lag.end <- 3
 
@@ -873,8 +877,11 @@ for (site in rownames(site.data)){
     # data 0.5 
 
 # HOW TO COMBINE MULTIPLE CORRELATION VALUES INTO A SINGLE OUTPUT?  
-     diff.05 <- bench.corr.compare(0.5)
-    
+   #  diff.05 <- bench.corr.compare(0.5)
+  #   diff.07 <- bench.corr.compare(0.7)
+  #   diff.09 <- bench.corr.compare(0.9)  
+      diff.02 <- bench.corr.compare(0.2)
+  #   diff.00 <- bench.corr.compare(0.0)    # should produce comparable results to 
     # data 0.7 
     
     # data 0.9 

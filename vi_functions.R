@@ -199,7 +199,7 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lag
 
   # specify output .csv filename and location
     fout <- paste0(out.path,"evicorr_temp.csv")
-      download.file(url.name, fout)
+      download.file(url.name, fout, cacheOK = FALSE)
       return(read.csv(fout, header = T))
   } # end evi.corr.regrid function 
 

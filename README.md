@@ -5,8 +5,7 @@ ILO July 2013 Report
 
 Tasks 
 === 
-* Need to fix the `grid' command in Ingrid code to boxAverage 
-* Automate procedure of reviewing across correlation values - consolidate results into a single dataframe that includes correlation value as a column  - need to make graphic of this
+* Run across multiple correlation values then automate procedure of reviewing across correlation values - consolidate results into a single dataframe that includes correlation value as a column  - need to make graphic of this
 * Create a matrix and visual output that would show the XY average of each site's correlation 
 * Would be great to incorporate farmers' worst years from the sitetable, but it appears that the latest 'worst' year is 2002 - this cannot be usable from an EVI perspective.  
 * Can create a way to ensure that number of plots on a single row is not excessive, instead of standard nrow = 1 argument
@@ -25,6 +24,7 @@ Tasks
 
 Completed Tasks
 === 
+* Need to fix the `grid' command in Ingrid code to boxAverage 
 * Created a new .csv that contains all worst years to be called by spatial correlation section 
 * Send brief write-up of Chris/Marshall's work to Chris for review - 7/2 
 * Modify ggmap output to not deal with baselayer - use same syntax as for woreda/site maps 
