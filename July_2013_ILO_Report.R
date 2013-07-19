@@ -42,6 +42,9 @@
 
 
 # =========================  Edit History  ===================================== 
+# 7/18(ALD)
+#         *   Added error handling for correlation threshold piece in response
+#             to excessive script crashes caused by not downloading DL data 
 # 7/17(ALD) 
 #         *   Changed default ggsave output to .png: scope for setting default
 #             file type globally (to consider)
@@ -416,15 +419,15 @@ if (identical(rownames(site.data), rownames(vi.mat))){
   #  ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(s.sites)), data = s.sites, size = 3) + labs(title = "Ethiopia Harita Sites (S)")
   #  ggsave(filename = paste0(out.path,"EthSouthSitesMap.png"))
 
-    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(n.sites)), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Sites (N)")
-    ggsave(filename = paste0(out.path,"EthNorthSitesMap.png"))
+    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=rownames(n.sites)), data = n.sites, alpha = 1.0, size = 2) + labs(title = "Ethiopia Harita Sites")
+    ggsave(filename = paste0(out.path,"EthSitesMap.png"))
 
   # maps of woreda labels, saved to output folder 
   #  ggmap(s.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = s.sites, alpha = 1.0, size = 5) + labs(title = "Ethiopia Harita Woredas (S)")
  #   ggsave(filename = paste0(out.path,"EthSouthWoredasMap.png"))
 
-    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = n.sites, alpha = 1.0, size = 3) + labs(title = "Ethiopia Harita Woredas (N)")
-    ggsave(filename = paste0(out.path,"EthNorthWoredasMap.png"))
+    ggmap(n.map) + geom_text(aes(x=Longitude, y=Latitude, label=Woreda), data = n.sites, alpha = 1.0, size = 2) + labs(title = "Ethiopia Harita Woredas")
+    ggsave(filename = paste0(out.path,"EthWoredasMap.png"))
 
 
 
@@ -465,6 +468,9 @@ eth.coords <- make.coords(arc.early, b.s)
   # set standard map base layers   
     theme_set(theme_bw(16))
     outmap <- get_cloudmademap(bbox = c(left = eth.coords$l, bottom = eth.coords$b, right = eth.coords$r, top = eth.coords$t), api_key = cm.key)  
+
+
+    out.stdmap <- get_map(location = c(eth.coords$l, eth.coords$b, eth.coords$r, eth.coords$t), source = "google")
 
   # generate early window ARC rankings, can modify number of rows output appears in  
     ggmap(outmap) + geom_point(aes(x= Longitude, y = Latitude, color = Ranking), data = a_e) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ variable, nrow = 3) + labs(title = "ARC Early Window Rankings")
@@ -533,10 +539,11 @@ eth.coords <- make.coords(arc.early, b.s)
 # 
 # Will create a .csv output file titled with diameter value for comparison  
 #
-# How many km wide do you want the aggregate gridding box?  [0 < x <= 10 km]
-#
-    range.number <- 8    # do i want this?  number of values to be computed across the diameter
-    pt.num <- 5  # number of points for comparison?  
+# How many km wide do you want the aggregate gridding box?  DOES IT NEED TO BE LESS THAN 10KM?  NEEDS TESTING
+    range.number <- 15  
+
+# For this range, how many distance points would you like to evaluate and compare?  
+    pt.num <- 5  
 #
 # Specify years of interest - uncomment 1st to reuse years from beginning of analysis
 # preferable to ensure that badyear.thres * length(years) > 2 
@@ -546,8 +553,6 @@ eth.coords <- make.coords(arc.early, b.s)
 
 #==============================================================================#
 
-
-
   # default pixel size in degrees, from IRI-DL
     MODIS.pixel.size  <-  0.00221704 
     SPOT.pixel.size   <-  0.008928572 
@@ -556,54 +561,53 @@ eth.coords <- make.coords(arc.early, b.s)
                       # if we decide to make adjustments to account for 
                       # shrinking pixel sizes when moving towards poles 
 
-    di.range <- seq(0,range.number, length.out = pt.num)/(2*long.eq)  # returns input argument in deg
-    di.range <- di.range[-1]  # ignores 0 distance value 
+  # returns input argument in deg
+    di.range <- seq(0,range.number, length.out = pt.num)/(2*long.eq)  
+  # ignores 0 distance value
+    di.range <- di.range[-1]   
     
-  # clearing values for input parameters used in the spatial correlation section  
+  # clear values for input parameters used in the spatial correlation section  
     lag.start <- 0 
     lag.end <- 0   
 
-  # read in worst arc years from earlier analysis
+  # read in worst arc years from earlier analysis - requires year range to 
+  # coincide with range used in beginning of code 
     arc.worst.years <- read.csv(paste0(out.path, "ARC_worst_years", years[1], "-", years[length(years)],".csv"), header = TRUE, row.names = 1)
 
 
 
-  # create template df from which early/late windows will be drawn - worst years are stored here as we move through the loop 
-
-
+  # create template array from which early/late windows will be drawn - 
+  # worst years are stored here as we move through the loop 
     z.cols <- as.vector(t(outer(phases, di.range, FUN = "paste0")))
     y.cols <- c("Latitude", "Longitude", "Agreement", "Year1", "Year2")
-
     sc.agree <- array(data = NA, dim = c(dim(site.data)[1], length(y.cols), length(z.cols)), dimnames = list(rownames(site.data), y.cols, z.cols))
 
   # populate lat/lon values across z index 
       sc.agree[,c("Latitude","Longitude"),] <- as.matrix(site.data[,c("Latitude","Longitude")])
 
-
-
-
-
-
+# cycle through the sites
 for (site in rownames(site.data)){
   
-    print(site)
+    print(paste0("Now performing grid size scaling analysis for ", site))
   
     contract.pth<-paste0(base.path,scen,site,"/payout.data/contract.R")
     source(contract.pth)
   
-    midearly<-as.integer(t$swfirst+(t$phases[2,1]+t$phases[1,1])/2)
-    midlate<-as.integer(t$swfirst+(t$phases[2,3]+t$phases[1,3])/2)
+    # identify window months for downloading VI data 
+    # 4 dekads later was the [adjustable] standard delay in sniidharita  
+    # delay already inherent in IRI Data Library code in evi.corr.regrid since using
+    # shiftdatashort with a 1 month lag     
+      dekdelay <- 4 
+      midearly<-as.integer(t$swfirst+(t$phases[2,1]+t$phases[1,1])/2)
+      midlate<-as.integer(t$swfirst+(t$phases[2,3]+t$phases[1,3])/2)
+      earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
+      latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
   
-  # 4 dekads later was the [adjustable] standard delay in sniidharita  
-  # delay already inherent in IRI Data Library code in evi.corr.regrid since using
-  # shiftdatashort with a 1 month lag 
-    dekdelay <- 4 
-    earlymonth <- as.character(dekadmonth[(midearly+dekdelay)%%36,"Month"])
-    latemonth <- as.character(dekadmonth[(midlate+dekdelay)%%36,"Month"])
-  
-  
+  # loop across the distance ranges for a given site in the for loop 
   for (di.val in di.range){
     
+    # returns re-scaled [xy] averaged EVI values for window months specified by 
+    # contract parameters
     scale.early <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.range[2], CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = earlymonth)
     scale.late <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.val, CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = latemonth)   
     
@@ -652,6 +656,10 @@ for (site in rownames(site.data)){
     sc.agree[site,c("Agreement", "Year1", "Year2"),paste0("Late",di.val)] <- c(length(intersect(arc.site.late,sc.late.worst)) / max(length(arc.site.late), length(sc.late.worst)), sc.late.worst)
       
     
+    
+    
+    
+    
   }
 }
 
@@ -672,7 +680,8 @@ for (site in rownames(site.data)){
 #
 
   # Specify the correlation coefficient threshold (r) for masking pixels 
-        corr.value <- 0.4
+       # corr.value <- c(0.0, 0.2, 0.6, 0.8)
+        corr.value <- c(0.0, 0.2, 0.4, 0.6, 0.8)
 
   # Specify years of interest - uncomment 1st to reuse years from beginning of analysis
   # preferable to ensure that badyear.thres * length(years) > 2 
@@ -691,7 +700,7 @@ for (site in rownames(site.data)){
   # How large around the site pixel do you wish to create a bounding box?
       # If script fails to run, try reducing this value to shrink the bounding box 
       # Value should likely be < 0.5 
-        b.s <- 0.4
+        b.s <- 10/111
 
   # What spatial resolution do you want to regrid EVI values to?
       # For reference, consider the following pixel sizes (in degrees): 
@@ -699,14 +708,14 @@ for (site in rownames(site.data)){
       #  SPOT.pixel.size   <-  0.008928572 
       # If script fails, try increasing this value 
       # Value should likely be > 0.005 
-        rg.size <- 0.01
+        rg.size <- MODIS.pixel.size
 
 #=============================================================================#
 
   # read in auxiliary file again to incorporate revised values 
     source("vi_functions.R")
 
-
+spatial.comp <- function(corr.value){
   # create template df from which early/late windows will be drawn - final agreement % values will be stored here as we move through the loop 
     agree.df <- data.frame(Latitude = site.data[,"Latitude"], Longitude = site.data[,"Longitude"], Agreement = NA, Year1 = NA, Year2 = NA)
     rownames(agree.df) <- rownames(site.data)
@@ -759,13 +768,34 @@ for (site in rownames(site.data)){
   
   # PSEUDO - this is where the rescaled outputs will be generated 
  # month <- earlymonth
- # evi.scale.early <- evi.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Month = earlymonth, Size = )  
+ 
 
   
-  # generates lagged EVI values for all years available   
-  evi.early <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = earlymonth), Window = "Early") 
+  # generates lagged EVI values for all years available  
   
-  evi.late <- data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = latemonth), Window = "Late") 
+  # find post-processed [X Y] averaged EVI values for both early and late windows 
+  # raise exception and continue script if NAs appear in DL data by reading
+  # an NA filled locally stored error template - this means error checking will
+  # be required again when taking the worst years of the evi.early/late data 
+  evi.early <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = earlymonth), Window = "Early"), TRUE) 
+  
+  if(inherits(evi.early, "try-error")){
+    evi.early <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
+  }
+  
+  evi.late <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = latemonth), Window = "Late"), TRUE)
+  
+  if(inherits(evi.late, "try-error")){
+    evi.late <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
+  }
+  
+  
+  
+  
+
+
+  
+  
   
   # identify [X Y] average correlation values with product per range of lags
   # contingent on Run.Lag status 
@@ -792,13 +822,19 @@ for (site in rownames(site.data)){
     evi.early <- evi.early[is.element(evi.early$Year,years),]
     evi.late  <- evi.late[is.element(evi.late$Year,years),]
   
-  
-  # return the worst years according to badyear.thres value 
-    early.worst <- find.worst(evi.early,"aprod")
-    late.worst <- find.worst(evi.late,"aprod")
-   
-  
-  
+    # return the worst years according to badyear.thres value 
+    # raise exception and continue script if NAs appear
+        early.worst <- try(find.worst(evi.early,"aprod"), TRUE)
+        late.worst <- try(find.worst(evi.late,"aprod"), TRUE)
+        
+        if (inherits(try(find.worst(evi.early,"aprod"), TRUE), "try-error")){
+          early.worst <- rep(NA, badyear.thres*length(years))
+        }
+        
+        if (inherits(try(find.worst(evi.late,"aprod"), TRUE), "try-error")){
+          late.worst <- rep(NA, badyear.thres*length(years))
+        }
+    
   
   print(paste0("In ", site, " the worst ", round(badyear.thres, digits = 2), " early window years for the [", years[1], ",", years[length(years)], "]", " period are ", early.worst[1], ",", early.worst[2]))
   
@@ -812,9 +848,17 @@ for (site in rownames(site.data)){
       arc.early <- arc.worst.years[site,c("Early","Early.1")]
       arc.late <- arc.worst.years[site,c("Late","Late.1")]
   
-    agree.early[site,c("Agreement", "Year1", "Year2")] <- c(length(intersect(arc.early,early.worst)) / max(length(arc.years.early), length(early.worst)), early.worst)
+  # to avoid getting 0% matching when both years are NA, flag and mark result NA
   
-  agree.late[site,c("Agreement","Year1","Year2")] <- c(length(intersect(arc.late,late.worst)) / max(length(arc.years.late), length(late.worst)), late.worst)
+  if(!any(is.na(early.worst))){    
+    agree.early[site,c("Agreement", "Year1", "Year2")] <- c(length(intersect(arc.early,early.worst)) / max(length(arc.years.early), length(early.worst)), early.worst)
+  }else{agree.early[site,c("Agreement", "Year1", "Year2")] <- c(NA, early.worst)
+  }
+
+ if(!any(is.na(late.worst))){
+   agree.late[site,c("Agreement","Year1","Year2")] <- c(length(intersect(arc.late,late.worst)) / max(length(arc.years.late), length(late.worst)), late.worst)
+ }else agree.late[site,c("Agreement","Year1","Year2")] <- c(NA, late.worst) 
+
   } # end of spatial correlation for loop across sites 
 
 #PSEUDO - want to compare these results against the baseline to identify any performance improvements 
@@ -831,16 +875,20 @@ for (site in rownames(site.data)){
 
 
   # plot title 
-    ti <- paste0("ARC-EVI Agreement for Pixels with R > ", corr.value)
+    ti <- paste0("ARC-EVI Agreement for Pixels with r > ", corr.value)
   # plot filename  
-    fn <- paste0(out.path, "VIspatialcorrelation_",corr.value,"_.")
+    fn <- paste0(out.path, "EVI_SpCorr_R",corr.value,"_bs", round(b.s, digits = 3), "_rg", rg.size, "_", years[1], "-", years[length(years)], ".")
 
 
   # may need to re-run this code to ensure it generates plot properly  
-    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = evi.arc.sc) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
-    ggsave(file = paste0(fn,"png"), scale = 1.5)
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Agreement), data = evi.arc.sc, size = 3) + scale_color_gradient(low = "red", high = "green") + facet_wrap(~ Window, nrow = 1) + labs(title = ti)    
+    ggsave(file = paste0(fn,"png"))
     write.csv(evi.arc.sc,paste0(fn,"csv"))
   
+
+}# end of spatial.comp function 
+
+
 
 
 
@@ -862,6 +910,9 @@ for (site in rownames(site.data)){
   } # end if Run.Lag loop 
 
 
+  # run across all correlation threshold values in vector 
+    sapply(corr.value, spatial.comp)
+
     # PSEUDOCODE - insert code to analyze combination of different correlation values here 
   
 
@@ -881,7 +932,7 @@ for (site in rownames(site.data)){
   #   diff.07 <- bench.corr.compare(0.7)
   #   diff.09 <- bench.corr.compare(0.9)  
       diff.02 <- bench.corr.compare(0.2)
-  #   diff.00 <- bench.corr.compare(0.0)    # should produce comparable results to 
+     diff.00 <- bench.corr.compare(0.0, b.s, rg.size)    # should produce comparable results to 
     # data 0.7 
     
     # data 0.9 

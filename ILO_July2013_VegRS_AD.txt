@@ -32,7 +32,7 @@ The technique earlier used to determine the agreement frequency between VI and p
 
 The following are within-sample diagnostic exercises to identify whether alternative methods of incorporating VI data might better correspond with rainfall data.  Their success hinges on producing worst year agreement frequencies with ARC2 data equal to or greater than the "benchmark model" as described above.  The first exercise involves modifying the size of the bounding box of VI pixels compared to an individual ARC2 pixel.  Instead of maintaining the 10km x 10km grid size parity, smaller or larger re-scaled VI data could potentially better smooth out bias and improve correspondence with ARC2 findings.  The second exercise features a larger bounding box - a default value of approximately 90km each side - but masks out VI pixels whose correlation coefficients with the site-specific ARC2 pixel fall below various threshold levels.  Remaining pixel VI data are spatially averaged, with worst year agreement percentages calculated.    
 
-These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computation capabilities implicit in this study.  
+These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computation capabilities implicit in this study.  This portion of the analysis    
 
 
 
@@ -43,6 +43,12 @@ In the process of up-scaling vegetation data, noise may be amplified by the intr
 
 Oftentimes we can decrease errors in VI values by averaging over a larger area.  This is because what the satellite detects for a given location is not a perfect representation of the on-the-ground reality there, hence our use of the term ‘estimates’ when discussing the data coming from these satellites.  In fact, for any individual pixel with 8 neighbors, MODIS' processing algorithm includes neighbors' data into that pixel's levels [CITATION FROM MARSHALL].  
 
+Example figures below motivate the analysis and depict the varying levels of pixel coverage from modifying the bounding box.  EVI values from all MODIS pixels inside the box are averaged together and the worst years identified.   Later, we modify this setup by only selecting those pixels that satisfy a given condition, holding the bounding box size constant.  
+
+< INSERT BOUNDING BOX SIZE EXAMPLE FROM IRI-DL > 
+
+
+
 < INSERT RESULTS FROM VARYING BOUNDING BOX SIZE HERE >  
 
   
@@ -50,12 +56,17 @@ Oftentimes we can decrease errors in VI values by averaging over a larger area. 
 VI Spatial Correlation with Threshold 
 === 
 
-We may be interested in monitoring the areal coverage where VI results track the patterns of satellite rainfall estimates and correlation measures are an obvious metric to assist in this endeavor.  Pixels with similar vegetation contents should bear a close resemblance to one another, leading to high correlation values.  Therefore if we focus on only the pixels that are closely correlated and exclude those that are not, we may potentially increase the matching between VI and rainfall estimates in identifying the worst years which would trigger insurance payouts.  Of course different crops respond to rainfall differently, though broadly speaking changes in precipitation should be reflected in consequent vegetation changes.  We can then compare the agreement outcomes against our benchmark model which implicitly features a correlation threshold value of 0, i.e., including all pixels within the ARC2 bounding box.  
+We may be interested in monitoring the areal coverage where VI results track the patterns of satellite rainfall estimates and correlation measures are an obvious metric to assist in this endeavor.  Pixels with similar vegetation contents should bear a close resemblance to one another, leading to high correlation values.  Therefore if we focus only on the pixels that are closely correlated and exclude those that are not, we may potentially increase the matching between VI and rainfall estimates in identifying the worst years which would trigger insurance payouts.  Of course different crops respond to rainfall differently, though broadly speaking changes in precipitation should be reflected in consequent vegetation changes.  We can then compare the agreement outcomes against our benchmark model which implicitly features a correlation threshold value of 0, i.e., including all pixels within the ARC2 bounding box.  
   
+A graphical representation of this is seen in Figure DL-SpCorrThresh below.  This plot is centered around Hadush Hiwet with a bounding box size of 0.7 degrees (~ 80km), pixels regridded to 0.01 degrees each side (~ 1.1km) and a correlation threshold mask set at 0.4.  MODIS pixels whose correlation coefficients with the ARC2 pixel centered over Hadush Hiwet fall below the 0.4 level are masked out.  While this view shows us the actual correlation values, we can use the location information of pixels not masked out then spatially average their EVI values, and generate a new list of ranked years for comparison against the benchmark model.  As the correlation threshold rises, the number of EVI pixels in any scene that satisfy that level will decrease, yielding less information about         
 
+  					< Insert Figure DL-SpCorrThres about here >  
+  					< Insert Figure DL-SpCorrThresSCALE about here >   
 
 < INSERT RESULTS FROM VARYING CORRELATION THRESHOLDS HERE >  
 
+
+Results thus far have been generated using a Pearson product-moment correlation which is a function of the covariance and standard deviations (measures of dispersion) of two sets of data.  The Spearman rank correlation coefficient offers an alternative measure of association, and is the Pearson correlation coefficient test applied to ranked data. As a result, the Spearman correlation indicates the level of monotonicity in the data, whereas the Pearson correlation measures linearity.  EVI agreement levels with ARC2 using a Spearman approach look MARKEDLY DIFFERENT / THE SAME, as seen in Figure XXX below.      
 
 
 

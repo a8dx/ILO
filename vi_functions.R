@@ -157,7 +157,8 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lag
       ad4 <- "/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/"
       ad5 <- paste0("X/",Lon-Size,"/", Lon+Size, "/RANGEEDGES/")
       ad6 <- paste0("Y/", Lat-Size, "/", Lat+Size, "/RANGEEDGES/")
-      ad7 <- paste0("X/", RegridSize, "/", "0.9/boxAverage/Y/", RegridSize, "/", "0.9/boxAverage/")
+     # ad7 <- paste0("X/", RegridSize, "/", "0.9/boxAverage/Y/", RegridSize, "/", "0.9/boxAverage/")
+      ad7 <- ""
       ad8 <- "T/0.9/monthlyAverage/"
       ad9 <- "dup/"   # have to duplicate before taking the lag 
       ad10 <- paste0("T/1/1/1/shiftdatashort")  # stock lag value 
@@ -187,11 +188,7 @@ evi.corr.regrid <- function(Lat,Lon,Size,CorrThreshold,Month,RegridSize=0.05,Lag
     ad16 <- ""
     ad17 <- "T_lag+exch+table-+text+text+-table++.csv"
 }
-  
-  
-  
   # lag URL will look something like this: "http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DAILY/.ARC2/.daily/.est_prcp/X/38.726/VALUE/Y/7.845/VALUE/X/removeGRID/Y/removeGRID/T/1.0/monthlyAverage/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.526/38.926/RANGEEDGES/Y/7.645/8.045/RANGEEDGES/T/1.0/monthlyAverage/T/0/1/0/shiftdatashort/[T]/correlate/[X/Y]average/  T_lag"
-  
   
   # pieces together segments to generate a unified, usable URL 
     vec <- paste0("ad",1:17) 
@@ -272,12 +269,26 @@ find.worst <- function(obj,colname){
 }
 
 
-bench.corr.compare <- function(corr.value){
-    # corr.value corresponds to an earlier run which denotes a unique .csv file
-    # with output from the ARC-VI spatial correlation section of the ILO report
-    # script 
+bench.corr.compare <- function(corr_value, bound_size, reGrid_size){
+    # This function reads in pre-generated correlation threshold EVI agreement
+    # percentages, compares them to the 'benchmark' model of a 10x10km EVI regrid
+    # and produces .csv and .png outputs with the difference percentages.  
+    # Positive values denote the correlation threshold version performed better
+    # than status quo, negative values denote worse performance. 
+    # 
+    # Input Arguments: 
+    # corr_value:   correlation threshold used to produce output from an earlier 
+    #               run of the ILO_Report.R file.  
+    # bound_size:   size of bounding box constructed for the evi.regrid function
+    # reGrid_size:  pixel size that MODIS is regridded to - often gridding up
+    #               given IRI-DL limitations with finer data 
   
-  df.both <- read.csv(paste0(out.path,"VIspatialcorrelation_",corr.value,"_.csv"), header = T)
+  # filename containing run output from ILO_Report.R 
+  fn0 <- paste0("EVI_SpCorr_R",corr_value,"_bs", round(bound_size, digits = 3), "_rg", reGrid_size, "_", years[1], "-", years[length(years)])
+  
+  
+  # create window-specific data frames for holding comparison data 
+  df.both <- read.csv(paste0(out.path, fn0,".csv"), header = T)
   df.early <- df.both[which(df.both[,"Window"] == "Early"),]      
   df.late <- df.both[which(df.both[,"Window"] == "Late"),]
   
@@ -294,17 +305,15 @@ bench.corr.compare <- function(corr.value){
   
         out <- rbind(out.early,out.late)
       # use common naming system for different outputs   
-        fn <- paste0(out.path,"CorrThreshPerfDiff_",corr.value,"_.")
-        
+        #fn <- paste0(out.path,"CorrThreshPerfDiff_",corr.value,"_.")
+       
+      # potential title for output plots, currently not included in code below 
         ti.c <- paste0("Agreement Performance Gain [ ", corr.value, "Correlation Threshold - Benchmark]")
     # save as .png and .csv
-        ggmap(outmap) + geom_point(aes(x = Longitude, y = Latitude, color = fin), data = out) + scale_color_gradient(low = "red", high = "green") + labs(title = ti.c)
-        ggsave(file = paste0(fn,"png"))
-        write.csv(out,paste0(fn,"csv"))
+        ggmap(out.stdmap) + geom_point(aes(x = Longitude, y = Latitude, color = fin), data = out) + scale_color_gradient(low = "red", high = "green") + scale_colour_gradient2(low = "red", high = "green", "Difference\nin agreement\npercent") + facet_wrap(~ Window)
+        ggsave(file = paste0(out.path, "Diff",fn0,".png"))
+        write.csv(out,paste0(out.path, "Diff",fn0,".csv"))
         return(out)
   }  # end of bench.corr.compare function 
 
-# read.csv
-# subtract from benchmark, both early and late
-# save output in ggmap format as well as .csv
 
