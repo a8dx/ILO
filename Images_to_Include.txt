@@ -1,0 +1,49 @@
+Images to be included in ILO July 2013 Report
+
+
+Introduction / Rainfall Estimate Sections
+=========================================
+
+
+The following are some plots that were produced while replicating the results of the earlier ILO report.  If it makes sense, these could be added as a visualization recap of what was learned from prior work.  
+
+****
+Filename: Github /Output/ARCearlyranks.png 
+Purpose: Shows the ecdf rankings of site-level cumulative ARC2 rainfall for the early window, based on read-in contract parameters (includes the dekadal cap).  Each site has a single 1.0 value (window-year with the most rainfall of the 2001-2012 period) and a single 0.0 value (window-year with the least rainfall of the 2001-2012 period).  Locations with multiple cumulative rainfall values will obviously have ties (e.g., two years with 0mm rainfall), and hence multiple years with the same hue for that site.  In a glance, we see regional coherence which diminishes with distance.  For example, 2002 was the worst year on record for many of the sites in the northeastern section, but still a very good year for the sites south of Maychew.   
+
+****
+Filename: Github /Output/ARClateranks.png 
+Purpose: Same as above, but years 2001-2012 for only the late window, as calculated based on site-level contract parameters (includes the dekadal cap).  The late window suggests stronger spatial coherence than under the early window, with sites both north and south of 13.5N registering comparable rankings.    
+
+
+****
+Filename:
+Purpose: 
+
+
+Bounding Box Scaling Section
+============================
+
+
+
+
+Correlation Threshold Section
+=============================
+
+
+****
+
+Hypothesis: Increasing the correlation coefficient threshold, and therefore masking out a greater number of EVI pixels whose temporal patterns do not emulate ARC2's pattern, will increase the probability that a spatially averaged EVI time-series matches the ARC2 time-series in pinpointing the worst years.  
+Findings: Early window XXXX
+
+ Late window XXXX  
+Filename: DiffCorrThresTotalFacet.png
+Location: Github Output/ folder
+
+
+****
+
+Hypothesis:
+Findings: 
+Filename: 
+Location: 
