@@ -21,8 +21,21 @@ Filename:
 Purpose: 
 
 
+
 Bounding Box Scaling Section
 ============================
+
+**** 
+Hypothesis: Whereas our standard analysis scales up all MODIS pixels into a ~ 10 x 10km (0.1 x 0.1 deg) bounding box to compare against ARC2, we can vary the scaling size to identify what effects this has on agreement levels.  On the one hand, a larger bounding area improves the error cancellation and therefore bias reduction, across a greater number of pixels.  On the other, expanding our bounding box increases the probability of including non-vegetation pixels into our analysis.  We posit that there exists an optimal level below and above which agreement levels drop.  
+
+Results:  No change in agreement is observed in the vast majority of locations during the early window, indicating site-level agreement is robust to scaling size.  Of the few sites where bounding size has an effect, more tend in the direction of lower agreement levels than from the benchmark.  Sites are more responsive to bounding size in the late window with a nearly even mix of pixels increasing and decreasing agreement percentages.  The ratio of sites with lower agreement levels in the modified version is higher for the extremes - 3.75 km and 15 km - than the other cases which better approximate the standard size.      
+   
+* CAVEAT *   The benchmark model EVI data comes from regridding all of Ethiopia, not just an individual site.  Therefore regridding under the current approach regrids around the site as the center of the bounding box, whereas the benchmark model calls whichever pixel in the regridded space that site lies in.  This fundamental difference may be responsible for the discrepancy between the benchmark results and the 11.5 km results, despite the nearly synonymous bounding size.   
+  
+Filename: Github Output/EVIScaleSize_0.017_0.067_by_4.png
+Data File: Github Output/EVIScaleSize_0.017_0.067_by_4.csv
+
+
 
 
 
@@ -37,8 +50,8 @@ Hypothesis: Increasing the correlation coefficient threshold, and therefore mask
 Findings: Early window XXXX
 
  Late window XXXX  
-Filename: DiffCorrThresTotalFacet.png
-Location: Github Output/ folder
+Filename: Github Output/DiffCorrThresTotalFacet.png
+
 
 
 ****

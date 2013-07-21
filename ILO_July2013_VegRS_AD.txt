@@ -7,13 +7,13 @@ A perfect correlation between the two products cannot be expected; crop response
 
 Accordingly, the following subsections build upon earlier analyses conducted by the IRI.  Such analyses have addressed the degree to which several VI products identify the same worst years (those below a specified percentile level [this seems easier to explain than using a CDF approach) as ARC2 rainfall estimates.  Performance of a single product varies widely across sites - some agree 100%, others agree 0% - as seen in Figure ArcEVI below.  Agreement rates for the late window are substantially high than for the early window; averaged across the 3 VI products, early window agreement is 28% and late window agreement 56%.  If these values held true for out of sample sites, for example, then in a sample of 50 sites with 100 worst years as determined by rainfall levels recorded in the early window, the VI products would only agree with 28 of those years.  While perfomance across VI data is rather comparable for the early window, EVI clearly beats NDVI and NDWI indices in late window agreement.  This supports earlier analyses suggesting the superiority of the Enhanced Vegetation Index (EVI) as the preferred index for working with vegetation, hence this report continues a VI focus centered on EVI data.  To recall, EVI is computed from an equation that incorporates reflectance values from the near-infrared, red, and blue spectral bands, and parameter values corresponding to atmospheric aerosol concentration.  
 
-< Fig ArcEVI: INSERT ARCEVIagree.png HERE >  
+< Fig ArcEVI: INSERT Github/Output/ARCEVIagree.png HERE >  
+< DATA SOURCE: Github/Output/vi_comparison_table.csv > 
 
 
+An additional insight from prior work is that vegetation data lagged one month behind precipitation appears to best replicate dynamics observed in the precipitation timeseries.  While vegetation phenology intuitively trends behind precipitation, the specific temporal lag necessary to appropriately use VI data is not a priori understood. The optimal lag length maximizes the correspondence in changes between the two data products as measured in the correlation coefficient.  FOOTNOTE(Since variables measured in differing units are being analyzed, approaches that compare mean squared errors or bias are infeasible analytical methods, unlike when data from a common climate phenomenon are compared (e.g., two precipitation products)./ENDFOOTNOTE Therefore comparing correlation coefficients between versions of VI data lagged at varying lengths and rainfall can resolve this question.  As Figure AvgLagCorr demonstrates for EVI and ARC2 precipitation estimates timeseries, the pattern of lagged correlation values is consistent across all sites: positive, but low values for a lag length of zero months, peak correlation values at a 1-month lag, and values decreasing in time for the two and three month lags.  Accordingly, all subsequent analyses incorporating VI data feature versions lagged by one month.     
 
-An additional insight from prior work is that vegetation data lagged one month behind precipitation appears to best replicate dynamics observed in the precipitation timeseries.  While vegetation phenology intuitively trends behind precipitation, the specific temporal lag necessary to appropriately use VI data is not a priori understood. The optimal lag length maximizes the correspondence in changes between the two data products as measured in the correlation coefficient.  FOOTNOTE(Since variables measured in differing units are being analyzed, approaches that compare mean squared errors or bias are infeasible analytical methods, unlike when data from a common climate phenomenon are compared (e.g., two precipitation products)./ENDFOOTNOTE Therefore comparing correlation coefficients between versions of VI data lagged at varying lengths and rainfall can resolve this question.  As Figure XXX demonstrates for EVI and ARC2 precipitation estimates timeseries, the pattern of lagged correlation values is consistent across all sites: positive, but low values for a lag length of zero months, peak correlation values at a 1-month lag, and values decreasing in time for the two and three month lags.  Accordingly, all subsequent analyses incorporating VI data feature versions lagged by one month.     
-
-< INSERT AvgLagCorr*.PDF HERE>  
+< INSERT AvgLagCorr_0.5_.png HERE>  
 .. _laggedcorr-figure: 
 .. figure::laggedcorr
 
@@ -21,16 +21,16 @@ An additional insight from prior work is that vegetation data lagged one month b
 									          
 
 
-Furthermore, if data for calculating correlation coefficients is restricted only to the contract windows, the results <LOOK LIKE THIS>.    
+Furthermore, if data for calculating correlation coefficients is restricted only to the contract windows, the results <LOOK LIKE THIS - UNCERTAIN WHETHER I'LL BE ABLE TO RUN THESE>.    
                   
 
 
 Analysis
 === 
 
-The technique earlier used to determine the agreement frequency between VI and precipitation products relies on averaging all the VI product pixels that an individual ARC2 (10km x 10km resolution) pixel projects onto.  With MODIS pixels sized 250m a side, this results in approximately 1,600 VI pixels used when analyzing an individual site.  This has intuitive appeal, yet incorporates pixels that may have low vegetation abundance and therefore little bearing on the behavior of which years are identified as worst.      
+The technique earlier used to determine the agreement frequency between VI and precipitation products relies on averaging all the VI product pixels that an individual ARC2 (~ 10km x 10km resolution) pixel projects onto.  With MODIS pixels sized 250m a side, this results in approximately 1,600 VI pixels used when analyzing an individual site.  This has intuitive appeal, yet incorporates pixels that may have low vegetation abundance and therefore little bearing on the behavior of which years are identified as worst.      
 
-The following are within-sample diagnostic exercises to identify whether alternative methods of incorporating VI data might better correspond with rainfall data.  Their success hinges on producing worst year agreement frequencies with ARC2 data equal to or greater than the "benchmark model" as described above.  The first exercise involves modifying the size of the bounding box of VI pixels compared to an individual ARC2 pixel.  Instead of maintaining the 10km x 10km grid size parity, smaller or larger re-scaled VI data could potentially better smooth out bias and improve correspondence with ARC2 findings.  The second exercise features a larger bounding box - a default value of approximately 90km each side - but masks out VI pixels whose correlation coefficients with the site-specific ARC2 pixel fall below various threshold levels.  Remaining pixel VI data are spatially averaged, with worst year agreement percentages calculated.    
+The following are within-sample diagnostic exercises to identify whether alternative methods of incorporating VI data might better correspond with rainfall data.  Their success hinges on producing worst year agreement frequencies with ARC2 data equal to or greater than the "benchmark model" as described above.  The first exercise involves modifying the size of the bounding box of VI pixels compared to an individual ARC2 pixel.  Instead of maintaining the ~ 10km x 10km (0.1 x 0.1 deg) grid size parity, smaller or larger re-scaled VI data could potentially better smooth out bias and improve correspondence with ARC2 findings.  The second exercise features a larger bounding box - a default value of approximately 90km each side - but masks out VI pixels whose correlation coefficients with the site-specific ARC2 pixel fall below various threshold levels.  Remaining pixel VI data are spatially averaged, with worst year agreement percentages calculated.    
 
 These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computation capabilities implicit in this study.  This portion of the analysis    
 
@@ -63,10 +63,22 @@ A graphical representation of this is seen in Figure DL-SpCorrThresh below.  Thi
   					< Insert Figure DL-SpCorrThres about here >  
   					< Insert Figure DL-SpCorrThresSCALE about here >   
 
-< INSERT RESULTS FROM VARYING CORRELATION THRESHOLDS HERE >  
 
+
+
+
+
+
+< Insert Figure DiffCorrThresTotalFacet.png About Here > 
+< DATA SOURCES: multiple Github/Output/DiffEVI_SpCorr_RXXX_bs0.09_rg0.00221704_2001-2012.csv files, where XXX is a placeholder for a correlation coefficient threshold.  Existing runs include 0.0, 0.2, 0.4, 0.6, 0.8 > 
+
+ALD TO PROVIDE DISCUSSION OF FINDINGS HERE.... 
+
+There is obviously no uniform pattern here and further research will be required to determine why this method results in performance improvements in some locations, but not others.  
 
 Results thus far have been generated using a Pearson product-moment correlation which is a function of the covariance and standard deviations (measures of dispersion) of two sets of data.  The Spearman rank correlation coefficient offers an alternative measure of association, and is the Pearson correlation coefficient test applied to ranked data. As a result, the Spearman correlation indicates the level of monotonicity in the data, whereas the Pearson correlation measures linearity.  EVI agreement levels with ARC2 using a Spearman approach look MARKEDLY DIFFERENT / THE SAME, as seen in Figure XXX below.      
+
+< WOULD NEED TO RE-REUN THE CODE WITH SPEARMAN FOR THIS SECTION ABOVE TO BE INCLUDED > 
 
 
 

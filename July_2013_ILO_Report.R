@@ -42,6 +42,15 @@
 
 
 # =========================  Edit History  ===================================== 
+
+# 7/19(ALD)
+#         *   Added error handling to scaling piece
+#         *   Included weight.matrix flag to switch between evi.corr.regrid and
+#             evi.corr.mask, the latter which is a weighting matrix.  Changes
+#             filename and titles accordingly.  To do both, must run once as 
+#             TRUE, then again as FALSE.  
+#         *   Comparison for scaling section completed - produces an VIspatial    
+#             correlation .png unnecessarily - to be ignored.  
 # 7/18(ALD)
 #         *   Added error handling for correlation threshold piece in response
 #             to excessive script crashes caused by not downloading DL data 
@@ -384,6 +393,11 @@ if (identical(rownames(site.data), rownames(vi.mat))){
                       # which other comparisons are judged
 
 
+    
+    # set separate df's for early and late windows - easier to conduct comparisons   
+      benchmark.early <- benchmark[which(benchmark[,"variable"] == "EarlyEVI"),] 
+      benchmark.late  <- benchmark[which(benchmark[,"variable"] == "LateEVI"),]
+
   # save table to file
     f.out <- "vi_comparison_table.csv"
     write.csv(vi.mat, file = paste0(out.path, f.out))
@@ -608,10 +622,20 @@ for (site in rownames(site.data)){
     
     # returns re-scaled [xy] averaged EVI values for window months specified by 
     # contract parameters
-    scale.early <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.range[2], CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = earlymonth)
-    scale.late <- evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.val, CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = latemonth)   
+    scale.early <- try(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.val, CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = earlymonth), TRUE)
+    scale.late <- try(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = di.val, CorrThreshold = 0, RegridSize = MODIS.pixel.size, Month = latemonth), TRUE)   
     
   
+    if(inherits(scale.early, "try-error")){
+      # created a fake df with NA values to enable code to continue 
+      scale.early <- read.csv(paste0(out.path, "ScaleEarlySample.csv"), header = T)
+    }
+    
+      if (inherits(scale.late, "try-error")){
+        scale.late <- read.csv(paste0(out.path, "ScaleEarlySample.csv"), header = T)
+      }
+    
+
     # FOLLOWING PROCEDURES SHOULD BE PUT INTO FUNCTION 
     
     # now subset to the years of interest and identify which years agree with ARC worst
@@ -638,11 +662,11 @@ for (site in rownames(site.data)){
     sc.early.worst <- try(find.worst(scale.early,"aprod"), TRUE)
     sc.late.worst <- try(find.worst(scale.late,"aprod"), TRUE)
   
-    if (inherits(try(find.worst(scale.early,"aprod"), TRUE), "try-error")){
+    if (inherits(sc.early.worst, "try-error")){
       sc.early.worst <- rep(NA, badyear.thres*length(years))
     }
     
-    if (inherits(try(find.worst(scale.late,"aprod"), TRUE), "try-error")){
+    if (inherits(sc.late.worst, "try-error")){
       sc.late.worst <- rep(NA, badyear.thres*length(years))
     }
     
@@ -655,14 +679,60 @@ for (site in rownames(site.data)){
     
     sc.agree[site,c("Agreement", "Year1", "Year2"),paste0("Late",di.val)] <- c(length(intersect(arc.site.late,sc.late.worst)) / max(length(arc.site.late), length(sc.late.worst)), sc.late.worst)
       
-    
-    
-    
-    
-    
-  }
-}
+  } # end of di.val for loop 
+} # end of sites for loop 
 
+
+  # determine number of iterations per phase: earlies are first, lates are last 
+    phases.no <- length(di.range) 
+
+#######  Comparison Against Benchmark Model #######
+
+  # get earlies and lates, manipulated from sc.agree 
+  scale.early.df <- adply(sc.agree[,,1:phases.no], c(3))
+  scale.late.df <- adply(sc.agree[,,(phases.no+1):(2*phases.no)], c(3))
+  colnames(scale.early.df)[1] <- colnames(scale.late.df)[1] <- "WindowScaleSize"
+  
+  # get bounding box size and return to km 
+  # over-writing our old scale.early object - should be all right 
+    scale.early <- data.frame(scale.early.df, Window = "Early Window", site = rep(unlist(dimnames(sc.agree)[1]),phases.no))
+    scale.early[,1] <- as.factor(paste0(round(as.numeric(gsub("Early", "", scale.early[,"WindowScaleSize"])) * 2 * long.eq, digits = 3), " km")) 
+    scale.late <- data.frame(scale.late.df, Window = "Late Window", site = rep(unlist(dimnames(sc.agree)[1]),phases.no))
+    scale.late[,1] <- as.factor(paste0(round(as.numeric(gsub("Late", "", scale.late[,"WindowScaleSize"])) * 2 *long.eq, digits = 3), " km")) 
+
+  # subtract the benchmark
+  # first roll out benchmark to be comparable
+    benchmark.early.scale <- do.call("rbind", rep(list(benchmark.early), phases.no))
+    benchmark.late.scale <- do.call("rbind", rep(list(benchmark.late), phases.no))
+  # make sure sites align
+    if(identical(scale.early[,"site"], benchmark.early.scale[,"site"])){
+      print("Early scaled rownames agree - Congrats!")
+      scale.early[,"Difference"] <- scale.early[,"Agreement"] - benchmark.early.scale[,"value"]
+    }else{
+      stop("Mismatch between early benchmark and scale.early - try again!")
+      
+    }
+
+    if(identical(scale.late[,"site"], benchmark.late.scale[,"site"])){
+      print("Late scaled rownames agree - Congrats!")
+      scale.late[,"Difference"] <- scale.late[,"Agreement"] - benchmark.late.scale[,"value"]
+    }else{
+      stop("Mismatch between late benchmark and scale.late - try again!")
+    }
+
+  # combine the windows and produce outputs 
+    scale.final <- rbind(scale.early,scale.late)
+    scale.final$WindowScaleSize <- factor(scale.final$WindowScaleSize, levels = c("3.75 km", "7.5 km", "11.25 km", "15 km"))  
+
+# levels(scale.final$WindowScaleSize) <- 
+    fn <- paste0(out.path, "EVIScaleSize_", round(di.range[1], digits = 3), "_", round(di.range[length(di.range)], digits = 3), "_by_", length(di.range), ".")
+    ggmap(outmap) + geom_point(aes(x=Longitude, y=Latitude, color = Difference), data = scale.final, size = 3) + scale_color_gradient2(low = "red", high = "green") + facet_grid(Window ~ WindowScaleSize)     
+    ggsave(file = paste0(fn,"png"))
+    write.csv(scale.final,paste0(fn,"csv"))
+
+
+  
+  
 
 
 
@@ -710,10 +780,26 @@ for (site in rownames(site.data)){
       # Value should likely be > 0.005 
         rg.size <- MODIS.pixel.size
 
+  # Do you want to apply a correlation threshold mask *OR* a correlation weighted 
+  # matrix?  The former excludes EVI values for pixels whose correlation value
+  # falls below a user-specified value (in corr.value), while the latter keeps 
+  # all correlation values, multiplies them by their respective EVI values,
+  # then does an ecdf ranking.
+
+        weight.matrix <- TRUE
+
 #=============================================================================#
+
+  # no need to loop over correlation values if using correlation values as 
+  # weighting matrix 
+      if(weight.matrix){
+        corr.value <- 0.0
+      }
 
   # read in auxiliary file again to incorporate revised values 
     source("vi_functions.R")
+
+
 
 spatial.comp <- function(corr.value){
   # create template df from which early/late windows will be drawn - final agreement % values will be stored here as we move through the loop 
@@ -777,17 +863,40 @@ for (site in rownames(site.data)){
   # raise exception and continue script if NAs appear in DL data by reading
   # an NA filled locally stored error template - this means error checking will
   # be required again when taking the worst years of the evi.early/late data 
-  evi.early <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = earlymonth), Window = "Early"), TRUE) 
+
   
-  if(inherits(evi.early, "try-error")){
-    evi.early <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
-  }
-  
-  evi.late <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = latemonth), Window = "Late"), TRUE)
-  
-  if(inherits(evi.late, "try-error")){
-    evi.late <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
-  }
+  # switch to evi.corr.mask function in vi_functions.R if weighting matrix selected
+  if(weight.matrix){
+    evi.early <- try(data.frame(evi.corr.mask(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, Month = earlymonth), Window = "Early"), TRUE) 
+    
+    
+    if(inherits(evi.early, "try-error")){
+      evi.early <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
+    }
+    
+    evi.late <- try(data.frame(evi.corr.mask(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, Month = latemonth), Window = "Late"), TRUE)
+    
+    if(inherits(evi.late, "try-error")){
+      evi.late <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)}
+    
+    
+  }else{
+    evi.early <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = earlymonth), Window = "Early"), TRUE) 
+    
+    
+    if(inherits(evi.early, "try-error")){
+      evi.early <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
+    }
+    
+    evi.late <- try(data.frame(evi.corr.regrid(Lat = site.data[site,"Latitude"], Lon = site.data[site,"Longitude"], Size = b.s, RegridSize = rg.size, CorrThreshold = corr.value, Month = latemonth), Window = "Late"), TRUE)
+    
+    if(inherits(evi.late, "try-error")){
+      evi.late <- read.csv(paste0(out.path, "evicorr_error_template.csv"), header = TRUE)
+    }
+    
+    
+  } # end else statement
+   
   
   
   
@@ -874,10 +983,20 @@ for (site in rownames(site.data)){
     evi.arc.sc <- rbind(agree.early, agree.late)
 
 
-  # plot title 
+  if(weight.matrix){
+    # plot title 
+    ti <- paste0("ARC-EVI Agreement for Pixels with Weighted Correlation Matrix")
+    # plot filename  
+    fn <- paste0(out.path, "EVI_SpCorrWeightMatrix_bs", round(b.s, digits = 3), "_rg", rg.size, "_", years[1], "-", years[length(years)], ".")
+    
+  }else{
+    # plot title 
     ti <- paste0("ARC-EVI Agreement for Pixels with r > ", corr.value)
-  # plot filename  
-    fn <- paste0(out.path, "EVI_SpCorr_R",corr.value,"_bs", round(b.s, digits = 3), "_rg", rg.size, "_", years[1], "-", years[length(years)], ".")
+    # plot filename  
+    fn <- paste0(out.path, "EVI_SpCorr_R",corr.value,"_bs", round(b.s, digits = 3), "_rg", rg.size, "_", years[1], "-", years[length(years)], ".") 
+    
+  } 
+
 
 
   # may need to re-run this code to ensure it generates plot properly  
@@ -916,23 +1035,26 @@ for (site in rownames(site.data)){
     # PSEUDOCODE - insert code to analyze combination of different correlation values here 
   
 
-  #######  Comparison Against Benchmark Model #######
-  
-  # set separate df's for early and late windows - easier to conduct comparisons   
-    benchmark.early <- benchmark[which(benchmark[,"variable"] == "EarlyEVI"),] 
-    benchmark.late  <- benchmark[which(benchmark[,"variable"] == "LateEVI"),]
+#######  Comparison Against Benchmark Model #######
+
     
   # read in the re-scaled grid box data
-    
-  # read in the correlation mask data   
-    # data 0.5 
 
-# HOW TO COMBINE MULTIPLE CORRELATION VALUES INTO A SINGLE OUTPUT?  
-   #  diff.05 <- bench.corr.compare(0.5)
-  #   diff.07 <- bench.corr.compare(0.7)
-  #   diff.09 <- bench.corr.compare(0.9)  
-      diff.02 <- bench.corr.compare(0.2)
-     diff.00 <- bench.corr.compare(0.0, b.s, rg.size)    # should produce comparable results to 
-    # data 0.7 
-    
-    # data 0.9 
+    compare.wrapper <- function(corrVal){
+      # create wrapper to use apply function with single input argument
+      return(bench.corr.compare(corrVal, b.s, rg.size))
+    }
+    sapply(corr.value, compare.wrapper)
+
+
+
+# cycles through all correlation values in that big loop and combines them into a single df, then produce a faceted ggmap output to file 
+  for (this.corr in corr.value){
+    temp.df <- read.csv(paste0(out.path, "DiffEVI_SpCorr_R",this.corr,"_bs", round(b.s, digits = 3), "_rg", rg.size, "_", years[1], "-", years[length(years)],".csv"), header = T)
+    if(this.corr == corr.value[1]){
+      corr.comb.df <- temp.df
+    }else{corr.comb.df <- rbind(corr.comb.df, temp.df)}
+  } # end this.corr for loop 
+
+ggmap(outmap) + geom_point(aes(x = Longitude, y = Latitude, color = fin), data = corr.comb.df) + scale_colour_gradient2(low = "red", high = "green", "Difference\nin agreement\npercent") + facet_grid(Window ~ Corr_Thres)
+ggsave(file = paste0(out.path, "DiffCorrThresTotalFacet.png"))
