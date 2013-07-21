@@ -60,8 +60,8 @@ We may be interested in monitoring the areal coverage where VI results track the
   
 A graphical representation of this is seen in Figure DL-SpCorrThresh below.  This plot is centered around Hadush Hiwet with a bounding box size of 0.7 degrees (~ 80km), pixels regridded to 0.01 degrees each side (~ 1.1km) and a correlation threshold mask set at 0.4.  MODIS pixels whose correlation coefficients with the ARC2 pixel centered over Hadush Hiwet fall below the 0.4 level are masked out.  While this view shows us the actual correlation values, we can use the location information of pixels not masked out then spatially average their EVI values, and generate a new list of ranked years for comparison against the benchmark model.  As the correlation threshold rises, the number of EVI pixels in any scene that satisfy that level will decrease, yielding less information about         
 
-  					< Insert Figure DL-SpCorrThres about here >  
-  					< Insert Figure DL-SpCorrThresSCALE about here >   
+  			< Insert Figure Github/Output/DL-SpCorrThres.png about here >  
+  			< Insert Figure Github/Output/DL-SpCorrThresSCALE.png about here >   
 
 
 
