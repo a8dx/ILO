@@ -1,5 +1,6 @@
+========================================================================================
 Images to be included in ILO July 2013 Report
-
+========================================================================================
 
 Introduction / Rainfall Estimate Sections
 =========================================
@@ -16,9 +17,6 @@ Filename: Github /Output/ARClateranks.png
 Purpose: Same as above, but years 2001-2012 for only the late window, as calculated based on site-level contract parameters (includes the dekadal cap).  The late window suggests stronger spatial coherence than under the early window, with sites both north and south of 13.5N registering comparable rankings.    
 
 
-****
-Filename:
-Purpose: 
 
 
 
@@ -46,17 +44,28 @@ Correlation Threshold Section
 
 ****
 
-Hypothesis: Increasing the correlation coefficient threshold, and therefore masking out a greater number of EVI pixels whose temporal patterns do not emulate ARC2's pattern, will increase the probability that a spatially averaged EVI time-series matches the ARC2 time-series in pinpointing the worst years.  
-Findings: Early window XXXX
+Hypothesis: Increasing the correlation coefficient threshold, and therefore masking out a greater number of EVI pixels whose temporal patterns do not emulate ARC2's pattern, will increase the probability that a spatially averaged EVI time-series matches the ARC2 time-series in selecting the worst years.  
+Findings: As with our bounding box example, early window results appear more robust to a varying correlation threshold than the late window.  Only at a threshold of 0.8 is an increase in the number of sites affected by this modification observed.  Even then, the number of sites is roughly split in half between those whose agreement levels have improved and those which have worsened.  
 
- Late window XXXX  
+Similar to the early window, changes in agreement level in the late window are a mix of improvements and agreement reductions.  Common to many of these sites is a degree of consistency as the correlation threshold rises.  For example, a site where agreement levels are higher in the baseline (threshold is 0.0 - recall that because of the regridding process, this scenario does not perfectly equate to our benchmark model), tends to maintain higher agreement levels higher correlation thresholds.    
+
+There is obviously no uniform pattern here and further research will be required to determine why this method results in performance improvements in some locations, but not others. Still, some semblance of spatial coherence maintains.  For example, the cluster of affected sites near Samre all show lower performance for the range of threshold values.  
+
+For both windows, at a threshold value of 0.8 many sites drop out of the analysis because there no pixels for those locations satisfy the threshold requirement, hence their gray coloration.  Accordingly, peak correlation values for these locations falls somewhere between 0.6 and 0.8. 
+
+
 Filename: Github Output/DiffCorrThresTotalFacet.png
+Data Source: Github Output/DiffCorrThresTotalFacet.csv 
 
 
+< IF I HAVE TIME, I'LL MAKE A BAR CHART THAT SHOWS THE NUMBER OF SITES THAT SHOW AN INCREASE IN AGREEMENT, AS WELL AS THE AVERAGE VALUE OF THE SAME > 
 
-****
 
-Hypothesis:
-Findings: 
-Filename: 
-Location: 
+Using Correlation Values as a Weighting Matrix
+==== 
+
+Hypothesis: Pixel-level EVI-ARC2 correlation values are a proxy for vegetation level.  We anticipate an improvement in agreement levels by multiplying a pixel by its relative correlation level, thereby increasing the weight of vegetation-rich pixels and lowering the influence of non-vegetative land cover.  
+
+ 
+Filename: Diff  .png
+Data File:    .csv    

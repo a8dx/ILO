@@ -7,7 +7,7 @@ A perfect correlation between the two products cannot be expected; crop response
 
 Accordingly, the following subsections build upon earlier analyses conducted by the IRI.  Such analyses have addressed the degree to which several VI products identify the same worst years (those below a specified percentile level [this seems easier to explain than using a CDF approach) as ARC2 rainfall estimates.  Performance of a single product varies widely across sites - some agree 100%, others agree 0% - as seen in Figure ArcEVI below.  Agreement rates for the late window are substantially high than for the early window; averaged across the 3 VI products, early window agreement is 28% and late window agreement 56%.  If these values held true for out of sample sites, for example, then in a sample of 50 sites with 100 worst years as determined by rainfall levels recorded in the early window, the VI products would only agree with 28 of those years.  While perfomance across VI data is rather comparable for the early window, EVI clearly beats NDVI and NDWI indices in late window agreement.  This supports earlier analyses suggesting the superiority of the Enhanced Vegetation Index (EVI) as the preferred index for working with vegetation, hence this report continues a VI focus centered on EVI data.  To recall, EVI is computed from an equation that incorporates reflectance values from the near-infrared, red, and blue spectral bands, and parameter values corresponding to atmospheric aerosol concentration.  
 
-< Fig ArcEVI: INSERT Github/Output/ARCEVIagree.png HERE >  
+< Figure ArcEVI: INSERT Github/Output/ARCEVIagree.png HERE >  
 < DATA SOURCE: Github/Output/vi_comparison_table.csv > 
 
 
@@ -20,7 +20,7 @@ An additional insight from prior work is that vegetation data lagged one month b
  CAPTION:	Lagged correlation values for select lag lengths  
 									          
 
-
+< ENCOUNTERING SIGNIFICANT PROBLEMS TRYING TO NARROW CORRELATION STUDY TO SPECIFIC WINDOW >  
 Furthermore, if data for calculating correlation coefficients is restricted only to the contract windows, the results <LOOK LIKE THIS - UNCERTAIN WHETHER I'LL BE ABLE TO RUN THESE>.    
                   
 
@@ -32,7 +32,7 @@ The technique earlier used to determine the agreement frequency between VI and p
 
 The following are within-sample diagnostic exercises to identify whether alternative methods of incorporating VI data might better correspond with rainfall data.  Their success hinges on producing worst year agreement frequencies with ARC2 data equal to or greater than the "benchmark model" as described above.  The first exercise involves modifying the size of the bounding box of VI pixels compared to an individual ARC2 pixel.  Instead of maintaining the ~ 10km x 10km (0.1 x 0.1 deg) grid size parity, smaller or larger re-scaled VI data could potentially better smooth out bias and improve correspondence with ARC2 findings.  The second exercise features a larger bounding box - a default value of approximately 90km each side - but masks out VI pixels whose correlation coefficients with the site-specific ARC2 pixel fall below various threshold levels.  Remaining pixel VI data are spatially averaged, with worst year agreement percentages calculated.    
 
-These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computation capabilities implicit in this study.  This portion of the analysis    
+These exercises exclusively use EVI data with a one month lag and are run on a per-site basis, given the data requirements and computational requirements implicit in this study.     
 
 
 
@@ -43,13 +43,19 @@ In the process of up-scaling vegetation data, noise may be amplified by the intr
 
 Oftentimes we can decrease errors in VI values by averaging over a larger area.  This is because what the satellite detects for a given location is not a perfect representation of the on-the-ground reality there, hence our use of the term ‘estimates’ when discussing the data coming from these satellites.  In fact, for any individual pixel with 8 neighbors, MODIS' processing algorithm includes neighbors' data into that pixel's levels [CITATION FROM MARSHALL].  
 
-Example figures below motivate the analysis and depict the varying levels of pixel coverage from modifying the bounding box.  EVI values from all MODIS pixels inside the box are averaged together and the worst years identified.   Later, we modify this setup by only selecting those pixels that satisfy a given condition, holding the bounding box size constant.  
+Example figures below for EVI over the Bethans site from July 2000 motivate the analysis and depict the varying levels of pixel coverage from modifying the bounding box.  Holding the axis limits constant in both plots, the left figure with a bounding box length of 3.75 km contains demonstrably less information than the right figure of 15 km.  EVI values from all MODIS pixels inside the box are averaged together and the worst years identified.   Later, we modify this setup by only selecting those pixels that satisfy a given condition, holding the bounding box size constant.  
 
-< INSERT BOUNDING BOX SIZE EXAMPLE FROM IRI-DL > 
+< INSERT Bethans_Scale_375.gif and Bethans_Scale_15.gif >  
+Caption: Two Bounding Size Examples for Bethans 
+Source:   
+
+3.75 km Version: http://iridl.ldeo.columbia.edu/expert/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.83356/38.86724/RANGEEDGES/Y/14.13406/14.16774/RANGEEDGES/T/0.9/monthlyAverage/T/%28Jul%29RANGE/figviewer.html?my.help=more+options&map.T.plotvalue=Jul+2000&map.Y.units=degree_north&map.Y.plotlast=14.25&map.url=X+Y+fig-+colors+-fig&map.domain=+{+%2FT+486.5+plotvalue+}&map.domainparam=+%2Fplotaxislength+432+psdef+%2Fplotborder+72+psdef&map.zoom=Zoom&redraw.x=22&redraw.y=9&map.Y.plotfirst=14.05&map.X.plotfirst=38.75&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=38.95&map.EVI.plotfirst=0.1145903&map.EVI.units=unitless&map.EVI.plotlast=0.2990161&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
 
 
+15 km Version: http://iridl.ldeo.columbia.edu/expert/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.78303/38.91777/RANGEEDGES/Y/14.08353/14.21827/RANGEEDGES/T/0.9/monthlyAverage/T/%28Jul%29RANGE/figviewer.html?my.help=more+options&map.T.plotvalue=Jul+2000&map.Y.units=degree_north&map.Y.plotlast=14.25N&map.url=X+Y+fig-+colors+-fig&map.domain=+{+%2FEVI+0.05176452+0.3505677+plotrange+%2FT+486.5+plotvalue+X+38.700001+38.950001+plotrange+Y+14.05+14.25+plotrange+}&map.domainparam=+%2Fplotaxislength+432+psdef+%2Fplotborder+72+psdef+%2FXOVY+null+psdef&map.zoom=Zoom&redraw.x=14&redraw.y=16&map.Y.plotfirst=14.05N&map.X.plotfirst=38.75E&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=38.95E&map.EVI.plotfirst=0.05176452&map.EVI.units=unitless&map.EVI.plotlast=0.3505677&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
 
-< INSERT RESULTS FROM VARYING BOUNDING BOX SIZE HERE >  
+
+< INSERT RESULTS FROM VARYING BOUNDING BOX SIZE HERE, FROM Images_to_Include.txt >  
 
   
   
@@ -65,20 +71,23 @@ A graphical representation of this is seen in Figure DL-SpCorrThresh below.  Thi
 
 
 
-
-
-
-
 < Insert Figure DiffCorrThresTotalFacet.png About Here > 
 < DATA SOURCES: multiple Github/Output/DiffEVI_SpCorr_RXXX_bs0.09_rg0.00221704_2001-2012.csv files, where XXX is a placeholder for a correlation coefficient threshold.  Existing runs include 0.0, 0.2, 0.4, 0.6, 0.8 > 
 
-ALD TO PROVIDE DISCUSSION OF FINDINGS HERE.... 
 
-There is obviously no uniform pattern here and further research will be required to determine why this method results in performance improvements in some locations, but not others.  
+ 
+  < INSERT TEXT FROM Images_to_Include.txt on Correlation Threshold Section >  
 
-Results thus far have been generated using a Pearson product-moment correlation which is a function of the covariance and standard deviations (measures of dispersion) of two sets of data.  The Spearman rank correlation coefficient offers an alternative measure of association, and is the Pearson correlation coefficient test applied to ranked data. As a result, the Spearman correlation indicates the level of monotonicity in the data, whereas the Pearson correlation measures linearity.  EVI agreement levels with ARC2 using a Spearman approach look MARKEDLY DIFFERENT / THE SAME, as seen in Figure XXX below.      
 
-< WOULD NEED TO RE-REUN THE CODE WITH SPEARMAN FOR THIS SECTION ABOVE TO BE INCLUDED > 
+
+
+< EXCLUDE FOLLOWING TEXT >  
+Results thus far have been generated using a Pearson product-moment correlation which is a function of the covariance and standard deviations (measures of dispersion) of two sets of data.  The Spearman rank correlation coefficient offers an alternative measure of association, and is the Pearson correlation coefficient test applied to ranked data. As a result, the Spearman correlation indicates the level of monotonicity in the data, whereas the Pearson correlation measures linearity.  EVI agreement levels with ARC2 using a Spearman approach look MARKEDLY DIFFERENT / THE SAME, as seen in Figure XXX below.  
+< EXCLUDE PRECEDING TEXT, SEE FOLLOWING NOTE >      
+
+< INTERNAL NOTE: Attempting to run a Spearman correlation analysis failed - most likely because query times out.  When trying individual run, it works: e.g., http://iridl.ldeo.columbia.edu/expert/SOURCES/.NOAA/.NCEP/.CPC/.FEWS/.Africa/.DAILY/.ARC2/.daily/.est_prcp/X/38.963/VALUE/Y/14.107/VALUE/X/removeGRID/Y/removeGRID/T/1.0/monthlyAverage/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.8729099099099/39.0530900900901/RANGEEDGES/Y/14.0169099099099/14.1970900900901/RANGEEDGES/T/0.9/monthlyAverage/dup/T/1/1/1/shiftdatashort/3/-1/roll/dup/dataflag/0/maskle/3/-1/roll/mul/%5BT%5D/rankcorrelate/0/maskle/dataflag/0/maskle/mul/%5BX/Y%5Daverage/T/%28Jul%29RANGE/figviewer.html?plottype=line&my.help=more+options 
+
+ But processing requirements may be excessive for running in script environment > 
 
 
 
