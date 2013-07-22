@@ -9,7 +9,7 @@ Accordingly, the following subsections build upon earlier analyses conducted by 
 
 < Figure ArcEVI: INSERT Github/Output/ARCEVIagree.png HERE >  
 < DATA SOURCE: Github/Output/vi_comparison_table.csv > 
-
+Caption: Worst Year Agreement Percentage for Varying Vegetation Products and ARC2 Estimated Rainfall 
 
 An additional insight from prior work is that vegetation data lagged one month behind precipitation appears to best replicate dynamics observed in the precipitation timeseries.  While vegetation phenology intuitively trends behind precipitation, the specific temporal lag necessary to appropriately use VI data is not a priori understood. The optimal lag length maximizes the correspondence in changes between the two data products as measured in the correlation coefficient.  FOOTNOTE(Since variables measured in differing units are being analyzed, approaches that compare mean squared errors or bias are infeasible analytical methods, unlike when data from a common climate phenomenon are compared (e.g., two precipitation products)./ENDFOOTNOTE Therefore comparing correlation coefficients between versions of VI data lagged at varying lengths and rainfall can resolve this question.  As Figure AvgLagCorr demonstrates for EVI and ARC2 precipitation estimates timeseries, the pattern of lagged correlation values is consistent across all sites: positive, but low values for a lag length of zero months, peak correlation values at a 1-month lag, and values decreasing in time for the two and three month lags.  Accordingly, all subsequent analyses incorporating VI data feature versions lagged by one month.     
 
@@ -46,10 +46,8 @@ Oftentimes we can decrease errors in VI values by averaging over a larger area. 
 Example figures below for EVI over the Bethans site from July 2000 motivate the analysis and depict the varying levels of pixel coverage from modifying the bounding box.  Holding the axis limits constant in both plots, the left figure with a bounding box length of 3.75 km contains demonstrably less information than the right figure of 15 km.  EVI values from all MODIS pixels inside the box are averaged together and the worst years identified.   Later, we modify this setup by only selecting those pixels that satisfy a given condition, holding the bounding box size constant.  
 
 < INSERT Bethans_Scale_375.gif and Bethans_Scale_15.gif >  
-Caption: Two Bounding Size Examples for Bethans 
-Source:   
-
-3.75 km Version: http://iridl.ldeo.columbia.edu/expert/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.83356/38.86724/RANGEEDGES/Y/14.13406/14.16774/RANGEEDGES/T/0.9/monthlyAverage/T/%28Jul%29RANGE/figviewer.html?my.help=more+options&map.T.plotvalue=Jul+2000&map.Y.units=degree_north&map.Y.plotlast=14.25&map.url=X+Y+fig-+colors+-fig&map.domain=+{+%2FT+486.5+plotvalue+}&map.domainparam=+%2Fplotaxislength+432+psdef+%2Fplotborder+72+psdef&map.zoom=Zoom&redraw.x=22&redraw.y=9&map.Y.plotfirst=14.05&map.X.plotfirst=38.75&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=38.95&map.EVI.plotfirst=0.1145903&map.EVI.units=unitless&map.EVI.plotlast=0.2990161&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
+Caption: Example of Varying Bounding Box Sizes for Bethans 
+Source: 3.75 km Version: http://iridl.ldeo.columbia.edu/expert/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.83356/38.86724/RANGEEDGES/Y/14.13406/14.16774/RANGEEDGES/T/0.9/monthlyAverage/T/%28Jul%29RANGE/figviewer.html?my.help=more+options&map.T.plotvalue=Jul+2000&map.Y.units=degree_north&map.Y.plotlast=14.25&map.url=X+Y+fig-+colors+-fig&map.domain=+{+%2FT+486.5+plotvalue+}&map.domainparam=+%2Fplotaxislength+432+psdef+%2Fplotborder+72+psdef&map.zoom=Zoom&redraw.x=22&redraw.y=9&map.Y.plotfirst=14.05&map.X.plotfirst=38.75&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=38.95&map.EVI.plotfirst=0.1145903&map.EVI.units=unitless&map.EVI.plotlast=0.2990161&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
 
 
 15 km Version: http://iridl.ldeo.columbia.edu/expert/SOURCES/.USGS/.LandDAAC/.MODIS/.version_005/.EAF/.EVI/X/38.78303/38.91777/RANGEEDGES/Y/14.08353/14.21827/RANGEEDGES/T/0.9/monthlyAverage/T/%28Jul%29RANGE/figviewer.html?my.help=more+options&map.T.plotvalue=Jul+2000&map.Y.units=degree_north&map.Y.plotlast=14.25N&map.url=X+Y+fig-+colors+-fig&map.domain=+{+%2FEVI+0.05176452+0.3505677+plotrange+%2FT+486.5+plotvalue+X+38.700001+38.950001+plotrange+Y+14.05+14.25+plotrange+}&map.domainparam=+%2Fplotaxislength+432+psdef+%2Fplotborder+72+psdef+%2FXOVY+null+psdef&map.zoom=Zoom&redraw.x=14&redraw.y=16&map.Y.plotfirst=14.05N&map.X.plotfirst=38.75E&map.X.units=degree_east&map.X.modulus=360&map.X.plotlast=38.95E&map.EVI.plotfirst=0.05176452&map.EVI.units=unitless&map.EVI.plotlast=0.3505677&map.newurl.grid0=X&map.newurl.grid1=Y&map.newurl.land=draw+...&map.newurl.plot=colors&map.plotaxislength=432&map.plotborder=72&map.fnt=Helvetica&map.fntsze=12&map.XOVY=auto&map.color_smoothing=1&map.framelbl=framelabelstart&map.framelabeltext=&map.iftime=25&map.mftime=25&map.fftime=200
@@ -68,11 +66,12 @@ A graphical representation of this is seen in Figure DL-SpCorrThresh below.  Thi
 
   			< Insert Figure Github/Output/DL-SpCorrThres.png about here >  
   			< Insert Figure Github/Output/DL-SpCorrThresSCALE.png about here >   
-
+			Caption: Application of 0.4 Correlation Coefficient Threshold Mask over Hadush Hiwet EVI 
 
 
 < Insert Figure DiffCorrThresTotalFacet.png About Here > 
 < DATA SOURCES: multiple Github/Output/DiffEVI_SpCorr_RXXX_bs0.09_rg0.00221704_2001-2012.csv files, where XXX is a placeholder for a correlation coefficient threshold.  Existing runs include 0.0, 0.2, 0.4, 0.6, 0.8 > 
+Caption: Difference in Agreement Percentages Between Varying Correlation Threshold Level Runs and Benchmark Model 
 
 
  

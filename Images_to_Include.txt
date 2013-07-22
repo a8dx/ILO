@@ -6,16 +6,22 @@ Introduction / Rainfall Estimate Sections
 =========================================
 
 
-The following are some plots that were produced while replicating the results of the earlier ILO report.  If it makes sense, these could be added as a visualization recap of what was learned from prior work.  
+Helen: The following are some plots that were produced while replicating the results of the earlier ILO report.  If it makes sense, these could be added as a visualization recap of what was learned from prior work.  
 
 ****
 Filename: Github /Output/ARCearlyranks.png 
+Caption: Cumulative Early Window Estimated Precipitation Rankings for ARC2 for 2001-2012  
+Data Source: Github /Output/ARC2_rbf2001-2012.csv
+
 Purpose: Shows the ecdf rankings of site-level cumulative ARC2 rainfall for the early window, based on read-in contract parameters (includes the dekadal cap).  Each site has a single 1.0 value (window-year with the most rainfall of the 2001-2012 period) and a single 0.0 value (window-year with the least rainfall of the 2001-2012 period).  Locations with multiple cumulative rainfall values will obviously have ties (e.g., two years with 0mm rainfall), and hence multiple years with the same hue for that site.  In a glance, we see regional coherence which diminishes with distance.  For example, 2002 was the worst year on record for many of the sites in the northeastern section, but still a very good year for the sites south of Maychew.   
 
 ****
 Filename: Github /Output/ARClateranks.png 
-Purpose: Same as above, but years 2001-2012 for only the late window, as calculated based on site-level contract parameters (includes the dekadal cap).  The late window suggests stronger spatial coherence than under the early window, with sites both north and south of 13.5N registering comparable rankings.    
+Caption: Cumulative Late Window Estimated Precipitation Rankings for ARC2 for 2001-2012  
+Data Source: Github /Output/ARC2_rbf2001-2012.csv
 
+Purpose: Same as above, but years 2001-2012 for only the late window, as calculated based on site-level contract parameters (includes the dekadal cap).  The late window suggests stronger spatial coherence than under the early window, with sites both north and south of 13.5N registering comparable rankings.
+    
 
 
 
@@ -32,7 +38,7 @@ Results:  No change in agreement is observed in the vast majority of locations d
   
 Filename: Github Output/EVIScaleSize_0.017_0.067_by_4.png
 Data File: Github Output/EVIScaleSize_0.017_0.067_by_4.csv
-
+Caption: Agreement Differences Between Varying EVI Bounding Box Sizes and Benchmark Model 
 
 
 
@@ -45,6 +51,7 @@ Correlation Threshold Section
 ****
 
 Hypothesis: Increasing the correlation coefficient threshold, and therefore masking out a greater number of EVI pixels whose temporal patterns do not emulate ARC2's pattern, will increase the probability that a spatially averaged EVI time-series matches the ARC2 time-series in selecting the worst years.  
+
 Findings: As with our bounding box example, early window results appear more robust to a varying correlation threshold than the late window.  Only at a threshold of 0.8 is an increase in the number of sites affected by this modification observed.  Even then, the number of sites is roughly split in half between those whose agreement levels have improved and those which have worsened.  
 
 Similar to the early window, changes in agreement level in the late window are a mix of improvements and agreement reductions.  Common to many of these sites is a degree of consistency as the correlation threshold rises.  For example, a site where agreement levels are higher in the baseline (threshold is 0.0 - recall that because of the regridding process, this scenario does not perfectly equate to our benchmark model), tends to maintain higher agreement levels higher correlation thresholds.    
@@ -56,16 +63,17 @@ For both windows, at a threshold value of 0.8 many sites drop out of the analysi
 
 Filename: Github Output/DiffCorrThresTotalFacet.png
 Data Source: Github Output/DiffCorrThresTotalFacet.csv 
+Caption: Agreement Differences Between Varying EVI-ARC2 Correlation Threshold Levels and Benchmark Model     
 
-
-< IF I HAVE TIME, I'LL MAKE A BAR CHART THAT SHOWS THE NUMBER OF SITES THAT SHOW AN INCREASE IN AGREEMENT, AS WELL AS THE AVERAGE VALUE OF THE SAME > 
 
 
 Using Correlation Values as a Weighting Matrix
 ==== 
 
-Hypothesis: Pixel-level EVI-ARC2 correlation values are a proxy for vegetation level.  We anticipate an improvement in agreement levels by multiplying a pixel by its relative correlation level, thereby increasing the weight of vegetation-rich pixels and lowering the influence of non-vegetative land cover.  
+Hypothesis: We hypothesize that pixel-level EVI-ARC2 correlation values are a proxy for vegetation level, believing that it is vegetation responding to changes in rainfall and not other land cover types.  We anticipate an improvement in agreement levels by multiplying a pixel by its individual correlation level, thereby increasing the weight of vegetation-rich pixels (those with high correlation values) and lowering the influence of non-vegetative land cover.  
 
+Findings: Only one site in the early window has a lower agreement percentage resulting from the correlation weighting.  The vast majority of sites experience no changes, with  3 sites seeing an agreement increase of 0.5.  A very different story emerges for the late window where the mean difference is 0.0 (i.e., the amount of performance increase in sites that saw gains was negated by agreement reductions elsewhere).  Again we observe some spatial clustering, such as in May Teklia, Adis Alem S, and Adeke Ala, which all registered lower agreement by 0.5 (only agrees with one of the two worst years identified by ARC2 for the late window).   
  
-Filename: Diff  .png
-Data File:    .csv    
+Filename: DiffEVI_SpCorrWeightMatrix_bs0.2_rg0.00221704_2001-2012.png
+Data File: DiffEVI_SpCorrWeightMatrix_bs0.2_rg0.00221704_2001-2012.csv    
+Caption: Agreement Difference Between Correlation-Weighted EVI and Benchmark Model 
